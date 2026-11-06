@@ -1,0 +1,99 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-ink-950: #060a1a;
+  --color-ink-900: #0a1027;
+  --color-ink-850: #0e1634;
+  --color-ink-800: #121c40;
+  --color-ink-700: #1b2856;
+  --color-ink-600: #27366f;
+  --color-brand-50: #eef6fd;
+  --color-brand-100: #d6e9f8;
+  --color-brand-200: #aed3f1;
+  --color-brand-300: #7db8e6;
+  --color-brand-400: #4f9ddb;
+  --color-brand-500: #3d8ccf;
+  --color-brand-600: #2c72b3;
+  --color-navy-400: #5b5cc0;
+  --color-navy-500: #3d3f9a;
+  --color-navy-600: #2f3071;
+  --color-navy-700: #24255a;
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-slab), ui-serif, Georgia, serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-ink-950);
+  color: #e6ecfa;
+}
+
+body {
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-brand-500);
+  color: white;
+}
+
+.bg-mesh {
+  background:
+    radial-gradient(60rem 40rem at 10% -10%, rgb(61 140 207 / 0.22), transparent 60%),
+    radial-gradient(50rem 35rem at 110% 20%, rgb(61 63 154 / 0.35), transparent 60%),
+    radial-gradient(40rem 30rem at 50% 120%, rgb(47 48 113 / 0.45), transparent 60%),
+    var(--color-ink-950);
+}
+
+@layer components {
+.card {
+  @apply rounded-2xl border border-white/8 bg-ink-850/70 backdrop-blur-sm;
+}
+
+.input {
+  @apply w-full rounded-xl border border-white/10 bg-ink-900 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-500/30 disabled:opacity-60;
+}
+
+.label {
+  @apply mb-1.5 block text-xs font-medium tracking-wide text-slate-300;
+}
+
+/* Konten artikel */
+.prose-me h2 {
+  @apply mt-8 mb-3 font-display text-2xl font-bold text-white;
+}
+.prose-me h3 {
+  @apply mt-6 mb-2 font-display text-xl font-bold text-white;
+}
+.prose-me p {
+  @apply my-4 leading-relaxed text-slate-300;
+}
+.prose-me ul {
+  @apply my-4 list-disc space-y-1.5 pl-6 text-slate-300;
+}
+.prose-me ol {
+  @apply my-4 list-decimal space-y-1.5 pl-6 text-slate-300;
+}
+.prose-me a {
+  @apply text-brand-300 underline underline-offset-4;
+}
+.prose-me strong {
+  @apply text-white;
+}
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+.animate-float-slow {
+  animation: float-slow 7s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-slow { animation: none; }
+}
