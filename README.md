@@ -86,4 +86,5 @@ CRUD Blog/Vlog, CRUD user anak, CRUD user orang tua, CRUD pengajar, CRUD kelas (
 
 ## Dokumentasi
 
-Deck presentasi penjelasan sistem beserta screenshot: [`docs/Mental-English-Penjelasan-Sistem.pdf`](docs/Mental-English-Penjelasan-Sistem.pdf)
+- [`docs/Mental-English-Gambaran-Sistem.pdf`](docs/Mental-English-Gambaran-Sistem.pdf): gambaran sistem untuk umum (tanpa pembahasan teknis), beserta screenshot.
+- [`docs/Mental-English-Penjelasan-Sistem.pdf`](docs/Mental-English-Penjelasan-Sistem.pdf): versi lengkap, termasuk arsitektur, keamanan, langkah berikutnya, dan akun demo.
