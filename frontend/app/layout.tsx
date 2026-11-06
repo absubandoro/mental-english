@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from 'next';
-import { Plus_Jakarta_Sans, Roboto_Slab } from 'next/font/google';
+import { Oswald, Plus_Jakarta_Sans, Roboto_Slab } from 'next/font/google';
 import { AuthProvider } from '@/lib/auth';
 import './globals.css';
 
 const body = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-body', display: 'swap' });
+const condensed = Oswald({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-oswald', display: 'swap' });
 const slab = Roboto_Slab({ subsets: ['latin'], weight: ['600', '700', '800'], variable: '--font-slab', display: 'swap' });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -32,7 +33,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" className={`${body.variable} ${slab.variable}`}>
+    <html lang="id" className={`${body.variable} ${slab.variable} ${condensed.variable}`}>
       <body className="font-sans">
         <AuthProvider>{children}</AuthProvider>
       </body>

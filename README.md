@@ -48,7 +48,7 @@ Akun lain mengikuti pola `admin.bandung@…`, `teacher2.surabaya@…`, dst. Data
 ## Fitur
 
 ### Halaman publik
-- **Landing page** — satu section; semua menu (Blog, Mading, Lokasi Kami, Masuk, Daftar) ada di dalam konten, tanpa header bar.
+- **Landing page** — satu section dengan background foto kegiatan; menu (Blog & Vlog, Mading, Lokasi Kami, Masuk, Daftar) berupa kartu carousel di dalam konten, tanpa header bar. Foto ada di `frontend/public/landing/`.
 - **Blog & Vlog** — filter cabang, filter tipe, cari judul / nama author. Vlog menampilkan embed YouTube.
 - **Mading** — karya pelajar, filter cabang & cari judul / nama author.
 - **Lokasi Kami** — daftar cabang + Google Maps embed + tombol WhatsApp.

@@ -20,6 +20,7 @@
   --color-navy-700: #24255a;
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-slab), ui-serif, Georgia, serif;
+  --font-condensed: var(--font-oswald), 'Arial Narrow', sans-serif;
 }
 
 :root {
@@ -94,6 +95,15 @@ body {
 .animate-float-slow {
   animation: float-slow 7s ease-in-out infinite;
 }
+@keyframes kenburns {
+  from { transform: scale(1.08); }
+  to { transform: scale(1); }
+}
+.animate-kenburns {
+  animation: kenburns 9s ease-out both;
+}
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
 @media (prefers-reduced-motion: reduce) {
-  .animate-float-slow { animation: none; }
+  .animate-float-slow, .animate-kenburns { animation: none; }
 }
