@@ -2,6 +2,7 @@ import { Calendar, MapPin } from 'lucide-react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PublicShell } from '@/components/PublicShell';
+import { CoverArt } from '@/components/CoverArt';
 import { RichText } from '@/components/RichText';
 import { Avatar } from '@/components/ui';
 import { formatDate, youtubeId } from '@/lib/format';
@@ -53,9 +54,9 @@ export default async function BlogDetail({ params }: { params: Params }) {
         ) : post.coverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={post.coverUrl} alt="" className="mt-8 aspect-video w-full rounded-2xl object-cover ring-1 ring-white/10" />
-        ) : post.type === 'VLOG' ? (
-          <div className="mt-8 flex aspect-video items-center justify-center rounded-2xl bg-white/[0.03] text-sm text-slate-500 ring-1 ring-white/10">Video belum tersedia</div>
-        ) : null}
+        ) : (
+          <CoverArt seed={post.id} kind={post.type} className="mt-8 aspect-[16/7] w-full rounded-2xl ring-1 ring-white/10" />
+        )}
 
         <div className="mt-8">
           <RichText text={post.content} />

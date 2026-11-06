@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PublicShell } from '@/components/PublicShell';
+import { CoverArt } from '@/components/CoverArt';
 import { RichText } from '@/components/RichText';
 import { Avatar } from '@/components/ui';
 import { formatDate } from '@/lib/format';
@@ -31,9 +32,11 @@ export default async function MadingDetail({ params }: { params: Params }) {
             </div>
           </div>
         </div>
-        {m.imageUrl && (
+        {m.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={m.imageUrl} alt="" className="mt-8 w-full rounded-2xl object-cover ring-1 ring-white/10" />
+        ) : (
+          <CoverArt seed={m.id} kind={m.category} className="mt-8 aspect-[16/7] w-full rounded-2xl ring-1 ring-white/10" />
         )}
         <div className="mt-6">
           <RichText text={m.content} />

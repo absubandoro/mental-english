@@ -1,44 +1,40 @@
 'use client';
 
 import Link from 'next/link';
-import { formatDate } from '@/lib/format';
 import type { Mading } from '@/lib/types';
-import { Badge } from './ui';
+import { MadingNote } from './MadingNote';
 
+/** Grid mading untuk dashboard (pelajar, orang tua, admin) — gaya kertas tempel yang sama dengan halaman publik */
 export function MadingGrid({ items, actions }: { items: Mading[]; actions?: (m: Mading) => React.ReactNode }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((m) => (
-        <div key={m.id} className="card flex flex-col overflow-hidden">
-          {m.imageUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={m.imageUrl} alt="" className="aspect-video w-full object-cover" />
-          )}
-          <div className="flex flex-1 flex-col p-5">
-            <div className="flex items-center gap-2">
-              <Badge tone="navy">{m.category}</Badge>
-              {!m.published && <Badge tone="amber">Disembunyikan</Badge>}
-            </div>
-            <h3 className="mt-2 font-display text-lg font-bold text-white">
-              {m.published ? (
-                <Link href={`/mading/${m.id}`} className="hover:text-brand-200">
-                  {m.title}
-                </Link>
-              ) : (
-                m.title
-              )}
-            </h3>
-            <p className="mt-1 line-clamp-3 text-sm text-slate-400">{m.content}</p>
-            <div className="mt-auto flex items-center justify-between gap-2 pt-4 text-xs text-slate-500">
-              <span>
-                {m.author?.name ? `${m.author.name} · ` : ''}
-                {formatDate(m.createdAt, { day: 'numeric', month: 'short', year: 'numeric' })}
-              </span>
-              {actions && <div className="flex gap-1">{actions(m)}</div>}
-            </div>
+    <div className="grid gap-x-6 gap-y-9 pt-3 sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((m, i) => {
+        const note = (
+          <MadingNote
+            m={m}
+            index={i}
+            footer={
+              <>
+                {!m.published && <span className="rounded-full bg-black/10 px-2 py-0.5 text-[11px] font-semibold">Disembunyikan</span>}
+                {actions && (
+                  <div className="flex gap-0.5 rounded-lg bg-white/80 [&_button]:text-slate-700 [&_button:hover]:bg-black/5 [&_button:hover]:text-slate-900" onClick={(e) => e.preventDefault()}>
+                    {actions(m)}
+                  </div>
+                )}
+              </>
+            }
+          />
+        );
+        return m.published ? (
+          <Link key={m.id} href={`/mading/${m.id}`} className="group block">
+            {note}
+          </Link>
+        ) : (
+          <div key={m.id} className="group">
+            {note}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

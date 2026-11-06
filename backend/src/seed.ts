@@ -19,6 +19,29 @@ const ds = new DataSource({ type: 'postgres', url: process.env.DATABASE_URL, ent
 
 const DEFAULT_PASSWORD = 'password123';
 
+const MADING_SAMPLES = [
+  {
+    title: 'My Dream Job',
+    category: 'Karya Tulis',
+    content: 'When I grow up, I want to be a pilot. I want to fly around the world and talk to people from many countries. That is why I study English every week. My teacher says practice makes perfect!',
+  },
+  {
+    title: 'A Day at the Beach',
+    category: 'Cerita',
+    content: 'Last holiday, my family went to the beach. We built a big sandcastle and found three tiny crabs. I tried to describe everything in English to my little brother. He laughed, but he learned new words too!',
+  },
+  {
+    title: 'Rainy Morning',
+    category: 'Puisi',
+    content: 'Pitter patter on my window,\nGrey clouds dancing slow,\nI open my English book,\nAnd watch my brave words grow.',
+  },
+  {
+    title: 'Why Mistakes Are Good',
+    category: 'Opini',
+    content: 'I used to be afraid of speaking English because I made mistakes. Now I think mistakes are good, because every mistake teaches me something new. Being brave is more important than being perfect.',
+  },
+];
+
 function daysAgo(n: number) {
   const d = new Date();
   d.setDate(d.getDate() - n);
@@ -161,7 +184,9 @@ async function main() {
       [PostType.BLOG, `Kegiatan Outdoor Class di ${branch.city}`, 'Belajar tidak harus di dalam kelas. Pelajar kami praktik langsung di tempat umum.'],
       [PostType.VLOG, `Vlog: Serunya Speaking Day ${branch.city}`, 'Cuplikan kegiatan Speaking Day bersama pelajar dan pengajar.'],
     ] as const;
-    for (const [type, title, excerpt] of blogTitles) {
+    // Foto kegiatan (disajikan frontend dari /public/landing). Artikel tips memakai ilustrasi otomatis.
+    const covers = [null, '/landing/team.jpg', '/landing/holiday.jpg'];
+    for (const [ti, [type, title, excerpt]] of blogTitles.entries()) {
       await postRepo.save(
         postRepo.create({
           type,
@@ -169,7 +194,7 @@ async function main() {
           excerpt,
           slug: `${slugify(title)}-${code}`,
           content: `${excerpt}\n\nDi Mental English, kami percaya bahwa kemampuan bahasa tumbuh bersama mental yang kuat dan fokus yang terlatih. Setiap pertemuan dirancang agar pelajar berani mencoba, berani salah, dan terus memperbaiki diri.\n\n## Apa yang kami lakukan\n\n- Latihan speaking singkat setiap pertemuan\n- Permainan kosakata untuk melatih fokus\n- Refleksi bersama di akhir kelas\n\nSampai jumpa di kelas berikutnya!`,
-          coverUrl: null,
+          coverUrl: covers[ti],
           videoUrl: null, // isi dengan URL YouTube vlog Anda
           branchId: branch.id,
           authorId: admin.id,
@@ -180,9 +205,7 @@ async function main() {
     for (const [si, s] of students.entries()) {
       await madingRepo.save(
         madingRepo.create({
-          title: ['My Dream Job', 'A Day at the Beach', 'My Favorite Food', 'Why I Love English'][si],
-          category: ['Karya Tulis', 'Cerita', 'Puisi', 'Opini'][si],
-          content: 'I wrote this story in English class. At first I was nervous, but my teacher said mistakes help us learn. Now I feel braver to speak and write in English every day!',
+          ...MADING_SAMPLES[(si + bi) % MADING_SAMPLES.length],
           branchId: branch.id,
           authorId: s.id,
         }),
