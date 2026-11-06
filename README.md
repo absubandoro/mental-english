@@ -1,6 +1,6 @@
 # Mental English
 
-> Build your mental and focus
+> Build Your Mental Focus!
 
 Website kursus bahasa Inggris **Mental English** — Next.js (frontend), NestJS (API), PostgreSQL. Tema dark mode biru & navy mengikuti logo.
 

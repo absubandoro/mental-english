@@ -12,13 +12,13 @@ const DESCRIPTION =
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: 'Mental English — Build your mental and focus', template: '%s · Mental English' },
+  title: { default: 'Mental English — Build Your Mental Focus!', template: '%s · Mental English' },
   description: DESCRIPTION,
   applicationName: 'Mental English',
   openGraph: {
     type: 'website',
     siteName: 'Mental English',
-    title: 'Mental English — Build your mental and focus',
+    title: 'Mental English — Build Your Mental Focus!',
     description: DESCRIPTION,
     locale: 'id_ID',
   },

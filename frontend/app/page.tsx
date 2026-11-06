@@ -25,7 +25,7 @@ export default async function Home() {
             <div className="absolute inset-0 -z-10 rounded-full bg-brand-500/40 blur-3xl" />
             <Image src="/logo.png" alt="Logo Mental English" width={168} height={168} priority className="animate-float-slow rounded-full shadow-2xl shadow-brand-500/20" />
           </div>
-          <p className="mb-3 text-sm font-semibold tracking-[0.2em] text-brand-300 uppercase">Build your mental and focus</p>
+          <p className="mb-3 text-sm font-semibold tracking-wide text-brand-300">Build Your Mental Focus!</p>
           <h1 className="font-display text-5xl leading-[1.05] font-extrabold tracking-tight text-white sm:text-6xl">
             Mental <span className="bg-gradient-to-r from-brand-300 to-brand-500 bg-clip-text text-transparent">English</span>
           </h1>
