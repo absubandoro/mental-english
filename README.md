@@ -43,7 +43,7 @@ Password semua akun: `password123`
 | Orang tua | ortu.aisyah@mentalenglish.id | — |
 | Pelajar | aisyah@mentalenglish.id | — |
 
-Akun lain mengikuti pola `admin.bandung@…`, `teacher2.surabaya@…`, dst. Data cabang, alamat, dan nomor telepon di seed adalah **contoh** — ganti lewat menu **Cabang** (super admin).
+Akun lain mengikuti pola `admin.bandung@…`, `teacher2.surabaya@…`, dst. Cabang **Pusat** beralamat di Jatimurni, Pondok Melati, Kota Bekasi. Cabang Bandung & Surabaya masih **contoh**, dan nomor telepon semua cabang juga contoh — ganti lewat menu **Cabang** (super admin).
 
 ## Fitur
 
@@ -83,3 +83,7 @@ CRUD Blog/Vlog, CRUD user anak, CRUD user orang tua, CRUD pengajar, CRUD kelas (
 - Ganti `JWT_SECRET` dengan nilai acak yang panjang.
 - File unggahan disimpan di `backend/uploads/`; gunakan volume persisten atau object storage di produksi.
 - Notifikasi bersifat in-app (badge di sidebar orang tua, diperbarui tiap 30 detik).
+
+## Dokumentasi
+
+Deck presentasi penjelasan sistem beserta screenshot: [`docs/Mental-English-Penjelasan-Sistem.pdf`](docs/Mental-English-Penjelasan-Sistem.pdf)

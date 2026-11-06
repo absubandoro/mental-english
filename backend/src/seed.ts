@@ -49,10 +49,11 @@ async function main() {
   const mk = (data: Partial<User>) => users.save(users.create({ password, ...data }));
 
   const branchRepo = ds.getRepository(Branch);
+  // Pusat = alamat asli. Cabang lain masih CONTOH (belum ada) — ganti lewat menu Cabang.
   const branchData = [
-    { name: 'Mental English Pusat', city: 'Jakarta Selatan', address: 'Jl. Contoh Raya No. 10, Kebayoran Baru, Jakarta Selatan', phone: '0812-0000-0001', openHours: 'Senin–Sabtu, 08.00–20.00' },
-    { name: 'Mental English Bandung', city: 'Bandung', address: 'Jl. Contoh Dago No. 25, Coblong, Bandung', phone: '0812-0000-0002', openHours: 'Senin–Sabtu, 09.00–19.00' },
-    { name: 'Mental English Surabaya', city: 'Surabaya', address: 'Jl. Contoh Darmo No. 7, Wonokromo, Surabaya', phone: '0812-0000-0003', openHours: 'Senin–Jumat, 13.00–20.00' },
+    { name: 'Mental English Pusat', city: 'Bekasi', address: 'Jatimurni, Pondok Melati, Kota Bekasi, Jawa Barat', phone: '0812-0000-0001', openHours: 'Senin–Sabtu, 08.00–20.00' },
+    { name: 'Mental English Bandung (Contoh)', city: 'Bandung', address: 'Jl. Contoh Dago No. 25, Coblong, Bandung', phone: '0812-0000-0002', openHours: 'Senin–Sabtu, 09.00–19.00' },
+    { name: 'Mental English Surabaya (Contoh)', city: 'Surabaya', address: 'Jl. Contoh Darmo No. 7, Wonokromo, Surabaya', phone: '0812-0000-0003', openHours: 'Senin–Jumat, 13.00–20.00' },
   ];
   const branches: Branch[] = [];
   for (const b of branchData) {

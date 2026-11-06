@@ -20,7 +20,7 @@ export class BranchesService {
   constructor(@InjectRepository(Branch) private repo: Repository<Branch>) {}
 
   list() {
-    return this.repo.find({ order: { name: 'ASC' } });
+    return this.repo.find({ order: { createdAt: 'ASC', name: 'ASC' } });
   }
 
   async get(id: string) {
