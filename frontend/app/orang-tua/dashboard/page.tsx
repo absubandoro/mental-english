@@ -50,7 +50,7 @@ function Content({ childId }: { childId: string }) {
   const { attendance: a, exams: e } = data;
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Stat label="Rasio absen" value={`${a.ratio ?? 0}%`} icon={<CalendarCheck className="size-5" />} />
         <Stat label="Pertemuan" value={a.total} icon={<ClipboardList className="size-5" />} tone="from-navy-500/40" />
         <Stat label="Ujian" value={e.count} icon={<FileText className="size-5" />} tone="from-navy-500/40" />
@@ -116,8 +116,8 @@ function Content({ childId }: { childId: string }) {
             <Empty title="Belum ada pertemuan" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
+          <div className="table-cards px-4 pb-4 sm:overflow-x-auto sm:px-0 sm:pb-0">
+            <table className="w-full text-sm sm:min-w-[640px]">
               <thead className="bg-white/[0.02] text-left text-xs text-slate-400 uppercase">
                 <tr>
                   <th className="px-6 py-3 font-medium">Tanggal</th>
@@ -129,17 +129,17 @@ function Content({ childId }: { childId: string }) {
               <tbody className="divide-y divide-white/5">
                 {a.recent.map((r) => (
                   <tr key={r.id} className="align-top">
-                    <td className="px-6 py-3 whitespace-nowrap text-slate-300">{formatDate(r.date, { day: 'numeric', month: 'short' })}</td>
-                    <td className="px-3 py-3">
+                    <td data-label="Tanggal" className="px-6 py-3 whitespace-nowrap text-slate-300">{formatDate(r.date, { day: 'numeric', month: 'short' })}</td>
+                    <td data-label="Kelas" className="px-3 py-3">
                       <div className="text-slate-200">{r.topic}</div>
                       <div className="text-xs text-slate-500">
                         {r.className} · {SESSION_TYPE_LABEL[r.type]}
                       </div>
                     </td>
-                    <td className="px-3 py-3">
+                    <td data-label="Status" className="px-3 py-3">
                       <Badge tone={ATT_TONE[r.status]}>{ATTENDANCE_LABEL[r.status]}</Badge>
                     </td>
-                    <td className="px-6 py-3 text-slate-400">{r.teacherReport ?? '-'}</td>
+                    <td data-label="Report pengajar" data-block className="px-6 py-3 text-slate-400">{r.teacherReport ?? '-'}</td>
                   </tr>
                 ))}
               </tbody>

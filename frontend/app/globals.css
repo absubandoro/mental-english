@@ -36,6 +36,8 @@ body {
 body {
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
 }
 
 ::selection {
@@ -57,7 +59,7 @@ body {
 }
 
 .input {
-  @apply w-full rounded-xl border border-white/10 bg-ink-900 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-500/30 disabled:opacity-60;
+  @apply w-full rounded-xl border border-white/10 bg-ink-900 px-3.5 py-2.5 text-base text-white sm:text-sm placeholder:text-slate-500 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-500/30 disabled:opacity-60;
 }
 
 .label {
@@ -99,11 +101,105 @@ body {
   from { transform: scale(1.08); }
   to { transform: scale(1); }
 }
+@keyframes sheet-up {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-sheet-up { animation: sheet-up 0.28s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+.animate-fade-in { animation: fade-in 0.2s ease-out both; }
 .animate-kenburns {
   animation: kenburns 9s ease-out both;
 }
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 @media (prefers-reduced-motion: reduce) {
-  .animate-float-slow, .animate-kenburns { animation: none; }
+  .animate-float-slow, .animate-kenburns, .animate-sheet-up, .animate-fade-in { animation: none; }
+}
+
+/* Tabel → kartu di HP (dipakai komponen Table admin & tabel orang tua) */
+@media (max-width: 639px) {
+  .table-cards table,
+  .table-cards tbody,
+  .table-cards tr,
+  .table-cards td {
+    display: block;
+    width: 100%;
+  }
+  .table-cards thead {
+    display: none;
+  }
+  .table-cards tbody {
+    display: grid;
+    gap: 12px;
+  }
+  .table-cards tr {
+    position: relative;
+    border-radius: 18px;
+    border: 1px solid rgb(255 255 255 / 0.08);
+    background: rgb(14 22 52 / 0.75);
+    padding: 14px 16px 10px;
+  }
+  .table-cards td {
+    /* label di kolom kiri, semua isi sel bertumpuk rata kanan di kolom kanan */
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: end;
+    align-items: start;
+    column-gap: 16px;
+    padding: 7px 0 !important;
+    text-align: right;
+    border-top: 1px solid rgb(255 255 255 / 0.05);
+  }
+  .table-cards td::before {
+    content: attr(data-label);
+    grid-column: 1;
+    grid-row: 1 / span 6;
+    font-size: 12px;
+    color: #8a96b8;
+    text-align: left;
+  }
+  .table-cards td > * {
+    grid-column: 2;
+    min-width: 0;
+  }
+  /* Kolom pertama = judul kartu */
+  .table-cards td:first-child {
+    display: block;
+    justify-items: normal;
+    text-align: left;
+    border-top: 0;
+    padding: 0 72px 8px 0 !important;
+    font-size: 15px;
+  }
+  .table-cards td:first-child::before {
+    content: none;
+  }
+  /* Kolom aksi (label kosong) di pojok kanan atas */
+  .table-cards td[data-label='']:last-child {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: auto;
+    border-top: 0;
+    padding: 0 !important;
+  }
+  .table-cards td[data-label='']:last-child::before {
+    content: none;
+  }
+}
+@media (max-width: 639px) {
+  /* Nilai panjang (mis. report pengajar) ditampilkan di bawah labelnya */
+  .table-cards td[data-block] {
+    display: block;
+    justify-items: normal;
+    text-align: left;
+  }
+  .table-cards td[data-block]::before {
+    display: block;
+    margin-bottom: 2px;
+  }
 }

@@ -24,11 +24,15 @@ export const metadata: Metadata = {
     locale: 'id_ID',
   },
   twitter: { card: 'summary_large_image', title: 'Mental English', description: DESCRIPTION },
+  // Saat dipasang ke layar utama iPhone, tampil layar penuh seperti aplikasi
+  appleWebApp: { capable: true, title: 'Mental English', statusBarStyle: 'black-translucent' },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
   themeColor: '#060a1a',
   colorScheme: 'dark',
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

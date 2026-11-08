@@ -55,7 +55,7 @@ export default function AdminPembayaran() {
         }
       />
       <BranchNotice />
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 [&>*]:w-[72%] [&>*]:shrink-0 [&>*]:snap-start sm:[&>*]:w-auto">
         {(['LUNAS', 'MENUNGGU', 'BELUM_BAYAR'] as PaymentStatus[]).map((s) => (
           <Stat
             key={s}

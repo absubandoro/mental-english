@@ -151,13 +151,13 @@ export function SessionEditor({ id, readOnly, base }: { id: string; readOnly?: b
                   ))}
                 </div>
               </div>
-              <div className={`grid gap-2 ${isExam ? 'sm:grid-cols-[1fr_90px_80px_1fr]' : ''}`}>
-                <input className="input py-2" disabled={readOnly} placeholder="Catatan absensi (opsional)" value={r.note} onChange={(e) => patch(i, { note: e.target.value })} />
+              <div className={`grid gap-2 ${isExam ? 'grid-cols-2 sm:grid-cols-[1fr_90px_80px_1fr]' : ''}`}>
+                <input className="input col-span-2 py-2 sm:col-span-1" disabled={readOnly} placeholder="Catatan absensi (opsional)" value={r.note} onChange={(e) => patch(i, { note: e.target.value })} />
                 {isExam && (
                   <>
                     <input className="input py-2" disabled={readOnly} type="number" min={0} max={100} step="0.5" placeholder="Nilai" aria-label={`Nilai ${r.name}`} value={r.score} onChange={(e) => patch(i, { score: e.target.value })} />
                     <input className="input py-2" disabled={readOnly} placeholder="Grade" aria-label={`Grade ${r.name}`} value={r.grade} onChange={(e) => patch(i, { grade: e.target.value })} />
-                    <input className="input py-2" disabled={readOnly} placeholder="Catatan ujian untuk orang tua" value={r.examNote} onChange={(e) => patch(i, { examNote: e.target.value })} />
+                    <input className="input col-span-2 py-2 sm:col-span-1" disabled={readOnly} placeholder="Catatan ujian untuk orang tua" value={r.examNote} onChange={(e) => patch(i, { examNote: e.target.value })} />
                   </>
                 )}
               </div>
@@ -173,7 +173,7 @@ export function SessionEditor({ id, readOnly, base }: { id: string; readOnly?: b
       </section>
 
       {!readOnly && (
-        <div className="sticky bottom-4 z-10 flex justify-between gap-2 rounded-2xl border border-white/10 bg-ink-900/90 p-3 backdrop-blur">
+        <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-10 flex justify-between gap-2 rounded-2xl border border-white/10 bg-ink-900/90 p-3 shadow-2xl shadow-black/50 backdrop-blur lg:bottom-4">
           <Button
             variant="danger"
             onClick={async () => {

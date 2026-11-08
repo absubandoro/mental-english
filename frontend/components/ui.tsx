@@ -25,7 +25,7 @@ export function Button({
     <button
       {...props}
       disabled={props.disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
+      className={`inline-flex items-center justify-center gap-2 rounded-xl font-medium transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 ${
         size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2.5 text-sm'
       } ${BTN[variant]} ${className}`}
     >
@@ -109,14 +109,16 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/80 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={onClose}>
+    <div className="animate-fade-in fixed inset-0 z-50 flex items-end justify-center bg-ink-950/80 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
         onMouseDown={(e) => e.stopPropagation()}
-        className={`max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl border border-white/10 bg-ink-900 p-5 shadow-2xl sm:rounded-3xl sm:p-6 ${wide ? 'sm:max-w-3xl' : 'sm:max-w-lg'}`}
+        className={`animate-sheet-up max-h-[92dvh] w-full overflow-y-auto overscroll-contain rounded-t-[28px] border border-white/10 bg-ink-900 px-5 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl sm:p-6 ${wide ? 'sm:max-w-3xl' : 'sm:max-w-lg'}`}
       >
+        {/* Pegangan bottom sheet (HP) */}
+        <div aria-hidden className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-white/20 sm:hidden" />
         <div className="mb-5 flex items-center justify-between gap-4">
           <h2 className="font-display text-xl font-bold text-white">{title}</h2>
           <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 hover:text-white" aria-label="Tutup">
@@ -131,24 +133,24 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
 
 export function PageHeader({ title, desc, action }: { title: string; desc?: string; action?: React.ReactNode }) {
   return (
-    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">{title}</h1>
+        <h1 className="font-display text-[26px] leading-tight font-bold text-white sm:text-3xl">{title}</h1>
         {desc && <p className="mt-1 text-sm text-slate-400">{desc}</p>}
       </div>
-      {action}
+      {action && <div className="sm:shrink-0 [&>button]:w-full sm:[&>button]:w-auto">{action}</div>}
     </div>
   );
 }
 
 export function Stat({ label, value, icon, tone = 'from-brand-500/20' }: { label: string; value: React.ReactNode; icon?: React.ReactNode; tone?: string }) {
   return (
-    <div className={`card bg-gradient-to-br ${tone} to-transparent p-5`}>
+    <div className={`card bg-gradient-to-br ${tone} to-transparent p-4 sm:p-5`}>
       <div className="flex items-center justify-between text-slate-400">
-        <span className="text-xs font-medium uppercase tracking-wider">{label}</span>
+        <span className="text-[11px] font-medium tracking-wider uppercase sm:text-xs">{label}</span>
         {icon}
       </div>
-      <div className="mt-2 font-display text-3xl font-bold text-white">{value}</div>
+      <div className="mt-1.5 font-display text-2xl font-bold text-white sm:mt-2 sm:text-3xl">{value}</div>
     </div>
   );
 }

@@ -95,14 +95,21 @@ function SesiContent() {
           <ul className="divide-y divide-white/5">
             {data.data.map((s) => (
               <li key={s.id}>
-                <Link href={`/pengajar/sesi/${s.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-4 hover:bg-white/[0.03]">
-                  <div className="w-28 text-sm text-slate-400">{formatDate(s.date, { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                <Link href={`/pengajar/sesi/${s.id}`} className="flex items-center gap-4 px-4 py-3.5 hover:bg-white/[0.03] active:bg-white/5 sm:px-5 sm:py-4">
+                  {/* Tanggal ala kalender (HP & desktop) */}
+                  <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10">
+                    <span className="font-display text-lg leading-none font-bold text-white">{formatDate(s.date, { day: 'numeric' })}</span>
+                    <span className="mt-0.5 text-[10px] text-slate-400 uppercase">{formatDate(s.date, { month: 'short' })}</span>
+                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium text-white">{s.topic}</div>
-                    <div className="text-xs text-slate-500">{s.classRoom.name}</div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                      <span className="truncate">{s.classRoom.name}</span>
+                      <span className="sm:hidden">· Hadir {s.presentCount}/{s.attendanceCount}</span>
+                    </div>
                   </div>
                   <Badge tone={SESSION_TONE[s.type]}>{SESSION_TYPE_LABEL[s.type]}</Badge>
-                  <span className="w-20 text-right text-xs text-slate-400">
+                  <span className="hidden w-20 text-right text-xs text-slate-400 sm:block">
                     Hadir {s.presentCount}/{s.attendanceCount}
                   </span>
                 </Link>

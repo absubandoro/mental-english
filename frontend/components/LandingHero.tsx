@@ -4,6 +4,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, LayoutDashboard, LogIn, LogOut, 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth';
+import { PublicTabBar } from './PublicTabBar';
 import { ROLE_HOME, ROLE_LABEL } from '@/lib/format';
 
 interface Card {
@@ -90,7 +91,7 @@ export function LandingHero({ cities }: { cities: string[] }) {
       </div>
 
       {/* Logo — tanpa header bar */}
-      <div className="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-8">
+      <div className="mx-auto w-full max-w-7xl px-4 pt-[calc(1.5rem+env(safe-area-inset-top))] sm:px-8 sm:pt-6">
         <Link href="/" className="inline-flex items-center gap-3" aria-label="Mental English">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="" width={44} height={44} className="rounded-full ring-2 ring-white/20" />
@@ -191,6 +192,7 @@ export function LandingHero({ cities }: { cities: string[] }) {
       <p className="mx-auto w-full max-w-7xl px-4 pb-5 text-xs text-slate-400 sm:px-8">
         © {new Date().getFullYear()} Mental English{cities.length > 0 && <> · {cities.join(' · ')}</>}
       </p>
+      <PublicTabBar />
     </main>
   );
 }

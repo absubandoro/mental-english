@@ -1,7 +1,7 @@
 'use client';
 
 import { Search } from 'lucide-react';
-import { useState } from 'react';
+import { Children, cloneElement, isValidElement, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import type { UserLite } from '@/lib/types';
 import { Avatar } from './ui';
@@ -75,10 +75,27 @@ export function MultiPick({ label, options, value, onChange }: { label: string; 
   );
 }
 
+/**
+ * Tabel admin. Di HP setiap baris otomatis menjadi kartu (ala aplikasi):
+ * kolom pertama jadi judul kartu, kolom terakhir (aksi) di pojok, sisanya baris "label: nilai".
+ */
 export function Table({ head, children }: { head: React.ReactNode[]; children: React.ReactNode }) {
+  const labelled = Children.map(children, (row) => {
+    if (!isValidElement<{ children?: React.ReactNode }>(row)) return row;
+    const cells = Children.toArray(row.props.children);
+    return cloneElement(
+      row,
+      {},
+      cells.map((cell, i) =>
+        isValidElement<Record<string, unknown>>(cell)
+          ? cloneElement(cell, { 'data-label': typeof head[i] === 'string' ? head[i] : '' } as Record<string, unknown>)
+          : cell,
+      ),
+    );
+  });
   return (
-    <div className="card overflow-x-auto">
-      <table className="w-full min-w-[720px] text-sm">
+    <div className="table-cards sm:overflow-x-auto sm:rounded-2xl sm:border sm:border-white/8 sm:bg-ink-850/70">
+      <table className="w-full text-sm sm:min-w-[720px]">
         <thead className="bg-white/[0.02] text-left text-xs text-slate-400 uppercase">
           <tr>
             {head.map((h, i) => (
@@ -88,7 +105,7 @@ export function Table({ head, children }: { head: React.ReactNode[]; children: R
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-white/5">{children}</tbody>
+        <tbody className="sm:divide-y sm:divide-white/5">{labelled}</tbody>
       </table>
     </div>
   );

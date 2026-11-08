@@ -1,9 +1,10 @@
 'use client';
 
 import {
-  Bell, Building2, CalendarCheck, ChartPie, CreditCard, GraduationCap, Home, LayoutDashboard, LogOut, Megaphone, Menu, Newspaper, Palette,
-  School, ShieldCheck, User as UserIcon, Users, UsersRound, X,
+  Bell, Building2, CalendarCheck, ChartPie, ChevronRight, CreditCard, GraduationCap, Home, LayoutDashboard, LayoutGrid, LogOut, Megaphone,
+  Newspaper, Palette, School, ShieldCheck, User as UserIcon, Users, UsersRound,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -13,59 +14,76 @@ import { ROLE_LABEL } from '@/lib/format';
 import type { Role } from '@/lib/types';
 import { useBranches } from '@/lib/useBranches';
 import { Logo } from './Logo';
-import { Avatar, Spinner } from './ui';
+import { MobileTabBar, TabBarSpacer, type TabItem } from './MobileTabBar';
+import { Avatar, Modal, Spinner } from './ui';
 
 interface NavItem {
   href: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  /** Label pendek untuk tab bar HP */
+  short?: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   roles?: Role[];
 }
 
-const NAV: Record<'student' | 'parent' | 'teacher' | 'admin', NavItem[]> = {
+type Area = 'student' | 'parent' | 'teacher' | 'admin';
+
+const NAV: Record<Area, NavItem[]> = {
   student: [
-    { href: '/pelajar', label: 'Profil Saya', icon: UserIcon },
-    { href: '/pelajar/mading', label: 'Mading Saya', icon: Palette },
+    { href: '/pelajar', label: 'Profil Saya', short: 'Profil', icon: UserIcon },
+    { href: '/pelajar/mading', label: 'Mading Saya', short: 'Mading', icon: Palette },
   ],
   parent: [
-    { href: '/orang-tua', label: 'Profil Saya', icon: UserIcon },
-    { href: '/orang-tua/anak', label: 'Profil Anak', icon: GraduationCap },
-    { href: '/orang-tua/dashboard', label: 'Dashboard Anak', icon: ChartPie },
-    { href: '/orang-tua/mading', label: 'Mading Anak', icon: Palette },
-    { href: '/orang-tua/pembayaran', label: 'Laporan Pembayaran', icon: CreditCard },
-    { href: '/orang-tua/notifikasi', label: 'Notifikasi', icon: Bell },
+    { href: '/orang-tua', label: 'Profil Saya', short: 'Profil', icon: UserIcon },
+    { href: '/orang-tua/anak', label: 'Profil Anak', short: 'Anak', icon: GraduationCap },
+    { href: '/orang-tua/dashboard', label: 'Dashboard Anak', short: 'Dashboard', icon: ChartPie },
+    { href: '/orang-tua/mading', label: 'Mading Anak', short: 'Mading', icon: Palette },
+    { href: '/orang-tua/pembayaran', label: 'Laporan Pembayaran', short: 'Bayar', icon: CreditCard },
+    { href: '/orang-tua/notifikasi', label: 'Notifikasi', short: 'Notifikasi', icon: Bell },
   ],
   teacher: [
-    { href: '/pengajar', label: 'Kelas yang Diajar', icon: School },
-    { href: '/pengajar/sesi', label: 'Kelas Hari Ini', icon: CalendarCheck },
-    { href: '/pengajar/profil', label: 'Profil Saya', icon: UserIcon },
+    { href: '/pengajar', label: 'Kelas yang Diajar', short: 'Kelas', icon: School },
+    { href: '/pengajar/sesi', label: 'Kelas Hari Ini', short: 'Hari Ini', icon: CalendarCheck },
+    { href: '/pengajar/profil', label: 'Profil Saya', short: 'Profil', icon: UserIcon },
   ],
   admin: [
-    { href: '/admin', label: 'Ringkasan', icon: LayoutDashboard },
-    { href: '/admin/blog', label: 'Blog & Vlog', icon: Newspaper },
-    { href: '/admin/mading', label: 'Moderasi Mading', icon: Palette },
-    { href: '/admin/pelajar', label: 'User Anak', icon: GraduationCap },
-    { href: '/admin/orang-tua', label: 'User Orang Tua', icon: UsersRound },
+    { href: '/admin', label: 'Ringkasan', short: 'Ringkasan', icon: LayoutDashboard },
+    { href: '/admin/blog', label: 'Blog & Vlog', short: 'Blog', icon: Newspaper },
+    { href: '/admin/mading', label: 'Moderasi Mading', short: 'Mading', icon: Palette },
+    { href: '/admin/pelajar', label: 'User Anak', short: 'Anak', icon: GraduationCap },
+    { href: '/admin/orang-tua', label: 'User Orang Tua', short: 'Orang Tua', icon: UsersRound },
     { href: '/admin/pengajar', label: 'Pengajar', icon: Users },
     { href: '/admin/kelas', label: 'Kelas', icon: School },
-    { href: '/admin/pembayaran', label: 'Pembayaran', icon: CreditCard },
-    { href: '/admin/notifikasi', label: 'Push Notifikasi', icon: Megaphone },
+    { href: '/admin/pembayaran', label: 'Pembayaran', short: 'Bayar', icon: CreditCard },
+    { href: '/admin/notifikasi', label: 'Push Notifikasi', short: 'Notif', icon: Megaphone },
     { href: '/admin/cabang', label: 'Cabang', icon: Building2, roles: ['SUPER_ADMIN'] },
     { href: '/admin/admin-cabang', label: 'Admin Cabang', icon: ShieldCheck, roles: ['SUPER_ADMIN'] },
-    { href: '/admin/profil', label: 'Profil Saya', icon: UserIcon },
+    { href: '/admin/profil', label: 'Profil Saya', short: 'Profil', icon: UserIcon },
   ],
 };
 
-export function DashboardShell({ area, roles, children }: { area: keyof typeof NAV; roles: Role[]; children: React.ReactNode }) {
+/** Menu utama di tab bar HP (maks. 4 + tombol "Lainnya") */
+const MOBILE_TABS: Record<Area, string[]> = {
+  student: ['/pelajar/mading', '/pelajar'],
+  parent: ['/orang-tua/dashboard', '/orang-tua/anak', '/orang-tua/pembayaran', '/orang-tua/notifikasi'],
+  teacher: ['/pengajar/sesi', '/pengajar', '/pengajar/profil'],
+  admin: ['/admin', '/admin/kelas', '/admin/pembayaran', '/admin/notifikasi'],
+};
+
+function isActive(href: string, pathname: string) {
+  return href === pathname || (href !== `/${pathname.split('/')[1]}` && pathname.startsWith(href + '/'));
+}
+
+export function DashboardShell({ area, roles, children }: { area: Area; roles: Role[]; children: React.ReactNode }) {
   const { user, ready } = useRequireRole(roles);
   const { logout, activeBranchId, setActiveBranchId } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [sheet, setSheet] = useState(false);
   const [unread, setUnread] = useState(0);
   const { branches } = useBranches();
 
-  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => setSheet(false), [pathname]);
 
   useEffect(() => {
     if (!ready || area !== 'parent') return;
@@ -89,40 +107,61 @@ export function DashboardShell({ area, roles, children }: { area: keyof typeof N
 
   const items = NAV[area].filter((i) => !i.roles || i.roles.includes(user.role));
   const branchName = branches.find((b) => b.id === (user.branchId ?? activeBranchId))?.name;
+  const current = items.find((i) => isActive(i.href, pathname));
+  const badgeFor = (href: string) => (area === 'parent' && href.endsWith('/notifikasi') ? unread : 0);
+  const doLogout = () => {
+    logout();
+    router.replace('/login');
+  };
+
+  const tabHrefs = MOBILE_TABS[area];
+  const tabs: TabItem[] = tabHrefs
+    .map((h) => items.find((i) => i.href === h))
+    .filter((i): i is NavItem => !!i)
+    .map((i) => ({ key: i.href, href: i.href, label: i.short ?? i.label, icon: i.icon, active: isActive(i.href, pathname) && !sheet, badge: badgeFor(i.href) }));
+  const moreItems = items.filter((i) => !tabHrefs.includes(i.href));
+  tabs.push({
+    key: 'more',
+    label: 'Lainnya',
+    icon: LayoutGrid,
+    onClick: () => setSheet(true),
+    active: sheet || (!!current && !tabHrefs.includes(current.href)),
+  });
+
+  const userCard = (
+    <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-3">
+      <div className="flex items-center gap-3">
+        <Avatar name={user.name} src={user.avatarUrl} size={40} />
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold text-white">{user.name}</div>
+          <div className="truncate text-xs text-slate-400">
+            {ROLE_LABEL[user.role]}
+            {user.role !== 'SUPER_ADMIN' && branchName ? ` · ${branchName}` : ''}
+          </div>
+        </div>
+      </div>
+      {user.role === 'SUPER_ADMIN' && (
+        <select className="input mt-3 py-2 text-xs" value={activeBranchId ?? ''} onChange={(e) => setActiveBranchId(e.target.value || null)} aria-label="Cabang aktif">
+          <option value="">Semua cabang</option>
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
 
   const sidebar = (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between px-5 pt-5 pb-4">
+      <div className="px-5 pt-5 pb-4">
         <Logo size={36} />
-        <button className="rounded-lg p-1.5 text-slate-400 lg:hidden" onClick={() => setOpen(false)} aria-label="Tutup menu">
-          <X className="size-5" />
-        </button>
       </div>
-      <div className="mx-4 mb-4 rounded-2xl border border-white/8 bg-white/[0.03] p-3">
-        <div className="flex items-center gap-3">
-          <Avatar name={user.name} src={user.avatarUrl} size={38} />
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-white">{user.name}</div>
-            <div className="truncate text-xs text-slate-400">
-              {ROLE_LABEL[user.role]}
-              {user.role !== 'SUPER_ADMIN' && branchName ? ` · ${branchName}` : ''}
-            </div>
-          </div>
-        </div>
-        {user.role === 'SUPER_ADMIN' && (
-          <select className="input mt-3 py-2 text-xs" value={activeBranchId ?? ''} onChange={(e) => setActiveBranchId(e.target.value || null)} aria-label="Cabang aktif">
-            <option value="">Semua cabang</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
+      <div className="mx-4 mb-4">{userCard}</div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3" aria-label="Menu dashboard">
         {items.map(({ href, label, icon: Icon }) => {
-          const active = href === pathname || (href !== `/${pathname.split('/')[1]}` && pathname.startsWith(href + '/'));
+          const active = isActive(href, pathname);
           return (
             <Link
               key={href}
@@ -133,9 +172,7 @@ export function DashboardShell({ area, roles, children }: { area: keyof typeof N
             >
               <Icon className={`size-[18px] ${active ? 'text-brand-300' : ''}`} />
               <span className="flex-1">{label}</span>
-              {href.endsWith('/notifikasi') && area === 'parent' && unread > 0 && (
-                <span className="rounded-full bg-brand-500 px-1.5 text-[11px] font-bold text-white">{unread}</span>
-              )}
+              {badgeFor(href) > 0 && <span className="rounded-full bg-brand-500 px-1.5 text-[11px] font-bold text-white">{badgeFor(href)}</span>}
             </Link>
           );
         })}
@@ -144,46 +181,84 @@ export function DashboardShell({ area, roles, children }: { area: keyof typeof N
         <Link href="/" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white">
           <Home className="size-[18px]" /> Halaman Utama
         </Link>
-        <button
-          onClick={() => {
-            logout();
-            router.replace('/login');
-          }}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 hover:bg-rose-500/10 hover:text-rose-300"
-        >
+        <button onClick={doLogout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 hover:bg-rose-500/10 hover:text-rose-300">
           <LogOut className="size-[18px]" /> Keluar
         </button>
       </div>
     </div>
   );
 
+  const row = 'flex items-center gap-3.5 px-4 py-3.5 text-[15px] text-slate-200 active:bg-white/5';
+
   return (
     <div className="bg-mesh min-h-dvh">
+      {/* Desktop: sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-white/5 bg-ink-900/80 backdrop-blur lg:block">{sidebar}</aside>
-      {open && (
-        <div className="fixed inset-0 z-40 bg-ink-950/70 backdrop-blur-sm lg:hidden" onClick={() => setOpen(false)}>
-          <aside className="h-full w-72 max-w-[85%] border-r border-white/5 bg-ink-900" onClick={(e) => e.stopPropagation()}>
-            {sidebar}
-          </aside>
-        </div>
-      )}
+
       <div className="lg:pl-64">
-        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-white/5 bg-ink-950/80 px-4 py-3 backdrop-blur lg:hidden">
-          <button onClick={() => setOpen(true)} className="rounded-lg p-1.5 text-slate-300" aria-label="Buka menu">
-            <Menu className="size-6" />
-          </button>
-          <Logo size={30} />
-          {area === 'parent' ? (
-            <Link href="/orang-tua/notifikasi" className="relative rounded-lg p-1.5 text-slate-300" aria-label="Notifikasi">
-              <Bell className="size-5" />
-              {unread > 0 && <span className="absolute top-0.5 right-0.5 size-2 rounded-full bg-brand-400" />}
+        {/* HP: app bar atas */}
+        <header className="sticky top-0 z-30 border-b border-white/5 bg-ink-950/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl lg:hidden">
+          <div className="flex h-14 items-center gap-3 px-4">
+            <Link href="/" aria-label="Halaman utama" className="shrink-0">
+              <Image src="/logo.png" alt="" width={32} height={32} className="rounded-full" />
             </Link>
-          ) : (
-            <span className="w-8" />
-          )}
-        </div>
-        <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-10">{children}</main>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[15px] leading-tight font-semibold text-white">{current?.label ?? 'Mental English'}</div>
+              <div className="truncate text-[11px] leading-tight text-slate-400">{branchName ?? ROLE_LABEL[user.role]}</div>
+            </div>
+            {area === 'parent' && (
+              <Link href="/orang-tua/notifikasi" className="relative flex size-10 items-center justify-center rounded-full text-slate-300 active:bg-white/10" aria-label="Notifikasi">
+                <Bell className="size-[22px]" />
+                {unread > 0 && <span className="absolute top-2 right-2 size-2.5 rounded-full bg-rose-500 ring-2 ring-ink-950" />}
+              </Link>
+            )}
+            <button onClick={() => setSheet(true)} className="shrink-0 rounded-full active:scale-95" aria-label="Akun & menu">
+              <Avatar name={user.name} src={user.avatarUrl} size={34} />
+            </button>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-6xl px-4 pt-5 pb-6 sm:px-6 lg:py-10">
+          {children}
+          <TabBarSpacer />
+        </main>
       </div>
+
+      {/* HP: tab bar bawah + sheet "Lainnya" */}
+      <MobileTabBar items={tabs} label="Menu utama" />
+      <Modal open={sheet} onClose={() => setSheet(false)} title="Menu">
+        <div className="space-y-4">
+          {userCard}
+          {moreItems.length > 0 && (
+            <div className="divide-y divide-white/5 overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03]">
+              {moreItems.map(({ href, label, icon: Icon }) => (
+                <Link key={href} href={href} className={row} onClick={() => setSheet(false)}>
+                  <span className={`flex size-9 items-center justify-center rounded-xl ${isActive(href, pathname) ? 'bg-brand-500 text-white' : 'bg-brand-500/15 text-brand-200'}`}>
+                    <Icon className="size-[18px]" />
+                  </span>
+                  <span className="flex-1">{label}</span>
+                  <ChevronRight className="size-4 text-slate-500" />
+                </Link>
+              ))}
+            </div>
+          )}
+          <div className="divide-y divide-white/5 overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03]">
+            <Link href="/" className={row}>
+              <span className="flex size-9 items-center justify-center rounded-xl bg-white/5 text-slate-300">
+                <Home className="size-[18px]" />
+              </span>
+              <span className="flex-1">Halaman Utama</span>
+              <ChevronRight className="size-4 text-slate-500" />
+            </Link>
+            <button onClick={doLogout} className={`${row} w-full text-left text-rose-300`}>
+              <span className="flex size-9 items-center justify-center rounded-xl bg-rose-500/10">
+                <LogOut className="size-[18px]" />
+              </span>
+              <span className="flex-1">Keluar</span>
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
