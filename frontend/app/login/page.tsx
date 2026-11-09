@@ -22,7 +22,7 @@ export default function LoginPage() {
   }, [loading, user, router]);
 
   return (
-    <AuthCard title="Masuk" desc="Selamat datang kembali di Mental English" footer={<>Belum punya akun? <Link href="/daftar" className="text-brand-300 hover:underline">Daftar</Link></>}>
+    <AuthCard title="Masuk" desc="Selamat datang kembali di Mental English" footer={<>Calon siswa? <Link href="/daftar" className="text-brand-300 hover:underline">Daftar siswa baru</Link></>}>
       <form
         className="space-y-4"
         onSubmit={async (e) => {
@@ -46,7 +46,7 @@ export default function LoginPage() {
         <Field label="Password">
           <input className="input" type="password" autoComplete="current-password" required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
         </Field>
-        <Field label="Cabang" hint="Wajib untuk Admin & Pengajar — hanya bisa masuk ke cabang masing-masing. Pelajar & orang tua boleh dikosongkan.">
+        <Field label="Cabang" hint="Wajib untuk Admin, Pengajar & Keuangan — hanya bisa masuk ke cabang masing-masing. Pelajar & orang tua boleh dikosongkan.">
           <select className="input" value={form.branchId} onChange={(e) => setForm({ ...form, branchId: e.target.value })}>
             <option value="">— Pelajar / Orang tua —</option>
             {branches.map((b) => (

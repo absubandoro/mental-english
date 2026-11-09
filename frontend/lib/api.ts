@@ -60,8 +60,39 @@ export async function api<T = unknown>(
   return data as T;
 }
 
+export interface UploadResult {
+  url: string;
+  type: 'image' | 'video';
+  name: string;
+  size: number;
+}
+
+/** Unggah gambar (maks. 8 MB) atau video (maks. 100 MB) dengan progres 0–100 */
+export function uploadFile(file: File, onProgress?: (pct: number) => void): Promise<UploadResult> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_URL}/uploads`);
+    const token = getToken();
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress?.(Math.round((e.loaded / e.total) * 100));
+    xhr.onload = () => {
+      let data: { message?: string | string[] } & Partial<UploadResult> = {};
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch {
+        /* abaikan */
+      }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data as UploadResult);
+      else if (xhr.status === 413) reject(new ApiError('File terlalu besar', 413));
+      else reject(new ApiError(Array.isArray(data.message) ? data.message.join(', ') : data.message || 'Gagal mengunggah file', xhr.status));
+    };
+    xhr.onerror = () => reject(new ApiError('Koneksi terputus saat mengunggah', 0));
+    const form = new FormData();
+    form.append('file', file);
+    xhr.send(form);
+  });
+}
+
 export async function uploadImage(file: File) {
-  const form = new FormData();
-  form.append('file', file);
-  return api<{ url: string }>('/uploads', { method: 'POST', form });
+  return uploadFile(file);
 }

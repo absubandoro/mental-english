@@ -10,7 +10,6 @@ interface AuthState {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string, branchId?: string) => Promise<User>;
-  register: (data: Record<string, string>) => Promise<User>;
   logout: () => void;
   refresh: () => Promise<void>;
   setUser: (u: User) => void;
@@ -69,14 +68,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return me;
   }, []);
 
-  const register = useCallback(async (data: Record<string, string>) => {
-    const res = await api<{ token: string; user: User }>('/auth/register', { method: 'POST', body: data });
-    setToken(res.token);
-    const me = await api<User>('/auth/me');
-    setUser(me);
-    return me;
-  }, []);
-
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
@@ -95,8 +86,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const activeBranchId = user?.role === 'SUPER_ADMIN' ? superBranch : user?.branchId ?? null;
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout, refresh, setUser, activeBranchId, setActiveBranchId }),
-    [user, loading, login, register, logout, refresh, activeBranchId, setActiveBranchId],
+    () => ({ user, loading, login, logout, refresh, setUser, activeBranchId, setActiveBranchId }),
+    [user, loading, login, logout, refresh, activeBranchId, setActiveBranchId],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

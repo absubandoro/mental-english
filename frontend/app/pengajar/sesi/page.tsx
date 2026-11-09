@@ -4,6 +4,7 @@ import { BookOpen, CalendarCheck, FileText, Plus, Trees } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
+import { TodaySchedule } from '@/components/CalendarView';
 import { Badge, Button, Empty, ErrorBox, Field, Modal, PageHeader, Pagination, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { formatDate, SESSION_TYPE_LABEL, today } from '@/lib/format';
@@ -31,7 +32,7 @@ function SesiContent() {
 
   useEffect(() => {
     if (params.get('kelas')) {
-      setForm((f) => ({ ...f, classId: params.get('kelas')! }));
+      setForm((f) => ({ ...f, classId: params.get('kelas')!, date: params.get('tanggal') ?? f.date }));
       setOpen(true);
     }
   }, [params]);
@@ -54,6 +55,8 @@ function SesiContent() {
           </Button>
         }
       />
+
+      <TodaySchedule />
 
       {todays.length > 0 && (
         <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

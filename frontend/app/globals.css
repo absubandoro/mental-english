@@ -203,3 +203,43 @@ body {
     margin-bottom: 2px;
   }
 }
+
+/* Cetak rapor: kertas putih A4 */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  :root {
+    color-scheme: light;
+  }
+  html,
+  body {
+    background: #fff !important;
+    color: #0f172a;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Rapor muat dalam 1 halaman A4 */
+  .report-paper > * + * {
+    margin-top: 8px !important;
+  }
+  .report-paper section,
+  .report-paper > div {
+    padding: 10px 14px !important;
+    break-inside: avoid;
+  }
+  .report-paper > div:last-child {
+    padding: 0 14px !important;
+  }
+  .report-paper .sig-space {
+    margin-bottom: 18px !important;
+  }
+  .report-paper h1 {
+    font-size: 20px !important;
+  }
+  .report-paper h2 {
+    font-size: 15px !important;
+    margin-bottom: 6px !important;
+  }
+}

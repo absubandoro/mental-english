@@ -35,6 +35,8 @@ export const CurrentUser = createParamDecorator((_: unknown, ctx: ExecutionConte
 });
 
 export const ADMIN_ROLES = [Role.SUPER_ADMIN, Role.ADMIN];
+/** Boleh mengelola tagihan & verifikasi pembayaran */
+export const FINANCE_ROLES = [Role.SUPER_ADMIN, Role.ADMIN, Role.FINANCE];
 
 /**
  * Menentukan cabang yang boleh diakses.

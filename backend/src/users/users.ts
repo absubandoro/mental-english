@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
-import { IsBoolean, IsEmail, IsEnum, IsOptional, IsString, IsUUID, MinLength, ValidateIf } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsInt, IsOptional, IsString, IsUUID, Min, MinLength, ValidateIf } from 'class-validator';
 import { Repository } from 'typeorm';
 import { Role, User } from '../entities';
 import { ADMIN_ROLES, assertBranch, Auth, AuthUser, CurrentUser, requireBranch, scopeBranch } from '../common/auth';
@@ -24,6 +24,8 @@ export class CreateUserDto {
   @IsOptional() @IsUUID() branchId?: string;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID() parentId?: string | null;
   @IsOptional() @IsBoolean() isActive?: boolean;
+  /** SPP khusus pelajar; null = ikut nominal cabang */
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsInt() @Min(0) monthlyFee?: number | null;
 }
 
 export class UpdateUserDto {
@@ -39,6 +41,8 @@ export class UpdateUserDto {
   @IsOptional() @IsUUID() branchId?: string;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID() parentId?: string | null;
   @IsOptional() @IsBoolean() isActive?: boolean;
+  /** SPP khusus pelajar; null = ikut nominal cabang */
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsInt() @Min(0) monthlyFee?: number | null;
 }
 
 interface UserQuery {

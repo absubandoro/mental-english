@@ -2,7 +2,7 @@ import {
   Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn,
 } from 'typeorm';
 import { Branch } from './branch.entity';
-import { PostType } from './enums';
+import { MediaItem, PostType } from './enums';
 import { User } from './user.entity';
 
 @Entity('posts')
@@ -15,6 +15,8 @@ export class Post {
   @Column({ type: 'text' }) content: string;
   @Column({ type: 'varchar', nullable: true }) coverUrl: string | null;
   @Column({ type: 'varchar', nullable: true }) videoUrl: string | null;
+  /** Galeri foto / video tambahan */
+  @Column({ type: 'jsonb', default: () => "'[]'" }) media: MediaItem[];
   @Column({ default: true }) published: boolean;
 
   @Column({ type: 'uuid' }) branchId: string;

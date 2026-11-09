@@ -2,6 +2,7 @@ import {
   Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn,
 } from 'typeorm';
 import { Branch } from './branch.entity';
+import { MediaItem } from './enums';
 import { User } from './user.entity';
 
 /** Mading (majalah dinding) — karya pelajar */
@@ -12,6 +13,8 @@ export class Mading {
   @Column({ type: 'text' }) content: string;
   @Column({ type: 'varchar', nullable: true }) imageUrl: string | null;
   @Column({ type: 'varchar', default: 'Karya' }) category: string;
+  /** Foto / video karya */
+  @Column({ type: 'jsonb', default: () => "'[]'" }) media: MediaItem[];
   @Column({ default: true }) published: boolean;
 
   @Column({ type: 'uuid' }) branchId: string;

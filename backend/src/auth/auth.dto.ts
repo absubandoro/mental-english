@@ -1,20 +1,10 @@
-import { IsEmail, IsIn, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
-import { Role } from '../entities';
+import { IsEmail, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
 
 export class LoginDto {
   @IsEmail() email: string;
   @IsString() password: string;
   /** Wajib untuk admin & pengajar: mereka hanya bisa login ke cabangnya sendiri */
   @IsOptional() @IsUUID() branchId?: string;
-}
-
-export class RegisterDto {
-  @IsString() @MinLength(2) name: string;
-  @IsEmail() email: string;
-  @IsString() @MinLength(6) password: string;
-  @IsOptional() @IsString() phone?: string;
-  @IsUUID() branchId: string;
-  @IsIn([Role.PARENT, Role.STUDENT]) role: Role.PARENT | Role.STUDENT;
 }
 
 export class UpdateProfileDto {

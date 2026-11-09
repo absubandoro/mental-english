@@ -44,6 +44,7 @@ Password semua akun: `password123` (di server: nilai `SEED_PASSWORD`)
 | Super admin | superadmin@mentalenglish.id | — (kosongkan) |
 | Admin cabang | admin.pusat@mentalenglish.id | Mental English Pusat |
 | Pengajar | teacher1.pusat@mentalenglish.id | Mental English Pusat |
+| Keuangan | keuangan.pusat@mentalenglish.id | Mental English Pusat |
 | Orang tua | ortu.aisyah@mentalenglish.id | — |
 | Pelajar | aisyah@mentalenglish.id | — |
 
@@ -56,26 +57,35 @@ Akun lain mengikuti pola `admin.bandung@…`, `teacher2.surabaya@…`, dst. Caba
 - **Blog & Vlog** — filter cabang, filter tipe, cari judul / nama author. Vlog menampilkan embed YouTube.
 - **Mading** — karya pelajar, filter cabang & cari judul / nama author.
 - **Lokasi Kami** — daftar cabang + Google Maps embed + tombol WhatsApp.
-- **Masuk / Daftar** — daftar sebagai orang tua atau pelajar.
+- **Masuk / Daftar Siswa** — formulir pendaftaran siswa baru (data siswa & orang tua), ditinjau admin cabang.
 
 ### Pelajar — `/pelajar`
-Profil saya (beserta kelas yang diikuti), Mading saya (buat / ubah / hapus karya).
+Profil saya, Mading saya (karya dengan foto/video), Kalender, Rapor.
 
 ### Orang tua — `/orang-tua`
-Profil saya, Profil anak, Dashboard anak (rasio absen, report ujian, report pengajar), Mading anak, Laporan pembayaran, Notifikasi. Pilihan anak tersedia bila punya lebih dari satu anak.
+Profil saya, Profil anak, Dashboard anak (rasio absen, report ujian, report pengajar + foto/video kegiatan), **Rapor anak** (bisa dicetak / PDF), **Kalender**, Mading anak, **Pembayaran** (unggah bukti transfer, lihat rekening cabang, alasan bila bukti ditolak), Notifikasi.
 
 ### Pengajar — `/pengajar`
-- Pilih kelas di cabangnya dan **assign** diri sebagai pengajar.
-- **Kelas Hari Ini** — tipe *Belajar / Ujian / Outdoor*, berisi absensi (Hadir/Izin/Sakit/Alpa), report pengajar, dan bila *Ujian* ada input nilai, grade, dan catatan per anak. Hasil langsung tampil di dashboard orang tua.
+- **Kelas Hari Ini**: jadwal saya hari ini (dari jadwal kelas), tipe *Belajar / Ujian / Outdoor*, absensi, report pengajar, nilai ujian, dan **lampiran foto/video kegiatan**.
+- **Kalender**: jadwal kelas yang diajar + agenda cabang; ketuk jadwal untuk mengisi absensi.
+- **Rapor**: buat rapor per pelajar atau satu kelas sekaligus — nilai 8 aspek (Speaking, Listening, Reading, Writing, Vocabulary, Grammar, Mental & Kepercayaan Diri, Fokus & Konsentrasi), kehadiran & nilai ujian terisi otomatis, catatan, saran, lampiran, lalu terbitkan.
+- Kelas yang diajar (assign diri), Notifikasi.
+
+### Keuangan — `/keuangan`
+Peran baru, terkunci per cabang: **verifikasi bukti pembayaran** (terima / tolak dengan alasan), pantau semua tagihan, **pengaturan tagihan otomatis**, kalender.
 
 ### Admin — `/admin`
-CRUD Blog/Vlog, CRUD user anak, CRUD user orang tua, CRUD pengajar, CRUD kelas (nama kelas + pelajar + pengajar), moderasi mading, push notifikasi (semua orang tua cabang / per kelas / pilih penerima), update pembayaran (orang tua otomatis mendapat notifikasi saat tagihan dibuat atau status berubah).
+- **Pendaftaran siswa**: calon siswa dari halaman Daftar → hubungi via WhatsApp → **Terima** (akun orang tua & pelajar dibuat otomatis, bisa langsung masuk kelas) atau tolak.
+- **Kalender cabang**: agenda libur / acara / ujian (bisa per kelas, opsi notifikasi ke orang tua). Jadwal kelas otomatis tampil dan ditandai libur.
+- **Kelas** dengan jadwal mingguan (hari + jam + ruang) yang tersinkron ke kalender.
+- **Pembayaran & Pengaturan Tagihan**: tanggal tagihan tiap bulan (1–28), nominal SPP (bisa khusus per pelajar), jatuh tempo, rekening; verifikasi bukti transfer.
+- **Rapor**, Blog & Vlog (galeri foto/video, unggah video langsung atau link YouTube), moderasi mading, user anak / orang tua / pengajar / keuangan, push notifikasi, kotak masuk.
 
 **Super admin** dapat mengelola cabang & admin cabang, serta memilih cabang aktif di sidebar.
 
 ## Aturan cabang
 - Setiap user, kelas, blog, mading, dan pembayaran terikat ke **cabang**.
-- **Admin & pengajar wajib memilih cabang saat login** dan hanya bisa masuk ke cabangnya sendiri (`401 Akun Anda tidak terdaftar di cabang ini`).
+- **Admin, pengajar & keuangan wajib memilih cabang saat login** dan hanya bisa masuk ke cabangnya sendiri (`401 Akun Anda tidak terdaftar di cabang ini`).
 - Seluruh endpoint admin/pengajar dibatasi ke cabang miliknya di sisi server, termasuk saat mengakses data lewat ID.
 
 ## Branding

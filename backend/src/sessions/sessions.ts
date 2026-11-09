@@ -10,7 +10,8 @@ import {
 import { DataSource, Repository } from 'typeorm';
 import { Attendance, AttendanceStatus, ClassRoom, ClassSession, ExamResult, Role, SessionType } from '../entities';
 import { ADMIN_ROLES, assertBranch, Auth, AuthUser, CurrentUser, scopeBranch } from '../common/auth';
-import { paginate } from '../common/util';
+import { paginate, todayLocal } from '../common/util';
+import { MediaField, MediaDto } from '../common/media';
 import { ClassesModule, ClassesService } from '../classes/classes';
 
 export class CreateSessionDto {
@@ -41,13 +42,9 @@ export class UpdateSessionDto {
   @IsOptional() @IsString() report?: string;
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => AttendanceItem) attendances?: AttendanceItem[];
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => ExamItem) examResults?: ExamItem[];
+  @MediaField() media?: MediaDto[];
 }
 
-function today() {
-  const d = new Date();
-  const tz = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - tz).toISOString().slice(0, 10);
-}
 
 @Injectable()
 export class SessionsService {
@@ -125,7 +122,7 @@ export class SessionsService {
       this.repo.create({
         classId: cls.id,
         teacherId: actor.id,
-        date: dto.date ?? today(),
+        date: dto.date ?? todayLocal(),
         type: dto.type,
         topic: dto.topic,
         report: dto.report ?? null,
@@ -151,6 +148,7 @@ export class SessionsService {
         ...(dto.type ? { type: dto.type } : {}),
         ...(dto.topic ? { topic: dto.topic } : {}),
         ...(dto.report !== undefined ? { report: dto.report } : {}),
+        ...(dto.media !== undefined ? { media: dto.media } : {}),
       });
       for (const a of dto.attendances ?? []) {
         if (!studentIds.has(a.studentId)) continue;

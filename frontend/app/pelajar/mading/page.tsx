@@ -3,13 +3,14 @@
 import { Palette, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { MadingGrid } from '@/components/MadingGrid';
-import { Button, confirmDelete, Empty, ErrorBox, Field, ImageField, Modal, PageHeader, Pagination, Spinner } from '@/components/ui';
+import { MediaUploader } from '@/components/Media';
+import { Button, confirmDelete, Empty, ErrorBox, Field, Modal, PageHeader, Pagination, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApi } from '@/lib/hooks';
-import type { Mading, Paged } from '@/lib/types';
+import type { Mading, MediaItem, Paged } from '@/lib/types';
 
 const CATEGORIES = ['Karya Tulis', 'Cerita', 'Puisi', 'Opini', 'Gambar', 'Lainnya'];
-const EMPTY = { title: '', content: '', imageUrl: '', category: 'Karya Tulis' };
+const EMPTY = { title: '', content: '', imageUrl: '', category: 'Karya Tulis', media: [] as MediaItem[] };
 
 export default function MadingSaya() {
   const [page, setPage] = useState(1);
@@ -22,7 +23,7 @@ export default function MadingSaya() {
 
   const openForm = (m?: Mading) => {
     setEditing(m ?? null);
-    setForm(m ? { title: m.title, content: m.content, imageUrl: m.imageUrl ?? '', category: m.category } : EMPTY);
+    setForm(m ? { title: m.title, content: m.content, imageUrl: m.imageUrl ?? '', category: m.category, media: m.media ?? [] } : EMPTY);
     setError(null);
     setOpen(true);
   };
@@ -105,7 +106,7 @@ export default function MadingSaya() {
           <Field label="Isi karya">
             <textarea className="input min-h-40" required value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
           </Field>
-          <ImageField label="Gambar (opsional)" value={form.imageUrl} onChange={(imageUrl) => setForm({ ...form, imageUrl })} />
+          <MediaUploader label="Foto & video karya (opsional)" max={6} value={form.media} onChange={(media) => setForm({ ...form, media })} />
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
               Batal

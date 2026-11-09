@@ -1,10 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSourceOptions } from './data-source';
 import { AuthModule } from './auth/auth.module';
 import { BranchesModule } from './branches/branches';
+import { CalendarModule } from './calendar/calendar';
+import { EnrollmentsModule } from './enrollments/enrollments';
+import { ReportsModule } from './reports/reports';
 import { ClassesModule } from './classes/classes';
 import { MadingModule } from './mading/mading';
 import { NotificationsModule } from './notifications/notifications';
@@ -19,6 +23,7 @@ import { UsersModule } from './users/users';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (c: ConfigService) => ({
@@ -42,6 +47,9 @@ import { UsersModule } from './users/users';
     ParentModule,
     UploadsModule,
     StatsModule,
+    CalendarModule,
+    ReportsModule,
+    EnrollmentsModule,
   ],
 })
 export class AppModule {}

@@ -2,7 +2,7 @@ import {
   Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique, UpdateDateColumn,
 } from 'typeorm';
 import { ClassRoom } from './class-room.entity';
-import { AttendanceStatus, SessionType } from './enums';
+import { AttendanceStatus, MediaItem, SessionType } from './enums';
 import { User } from './user.entity';
 
 /** "Kelas Hari Ini" — satu pertemuan kelas */
@@ -13,6 +13,8 @@ export class ClassSession {
   @Column({ type: 'enum', enum: SessionType, default: SessionType.BELAJAR }) type: SessionType;
   @Column() topic: string;
   @Column({ type: 'text', nullable: true }) report: string | null;
+  /** Foto / video kegiatan kelas untuk orang tua */
+  @Column({ type: 'jsonb', default: () => "'[]'" }) media: MediaItem[];
 
   @Column({ type: 'uuid' }) classId: string;
   @ManyToOne(() => ClassRoom, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'classId' }) classRoom: ClassRoom;

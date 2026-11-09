@@ -5,6 +5,7 @@ import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { IsBoolean, IsOptional, IsString, MinLength } from 'class-validator';
 import { Repository } from 'typeorm';
 import { Mading, Role, User } from '../entities';
+import { MediaField, MediaDto } from '../common/media';
 import { ADMIN_ROLES, assertBranch, Auth, AuthUser, CurrentUser, scopeBranch } from '../common/auth';
 import { clean, paginate } from '../common/util';
 
@@ -13,6 +14,7 @@ export class MadingDto {
   @IsString() content: string;
   @IsOptional() @IsString() imageUrl?: string;
   @IsOptional() @IsString() category?: string;
+  @MediaField() media?: MediaDto[];
 }
 
 export class MadingModerationDto {

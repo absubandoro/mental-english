@@ -1,13 +1,13 @@
-import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
 import { Branch, ClassRoom, Role, User } from '../entities';
 import { clean } from '../common/util';
-import { LoginDto, RegisterDto, UpdateProfileDto } from './auth.dto';
+import { LoginDto, UpdateProfileDto } from './auth.dto';
 
-const BRANCH_LOCKED_ROLES = [Role.ADMIN, Role.TEACHER];
+const BRANCH_LOCKED_ROLES = [Role.ADMIN, Role.TEACHER, Role.FINANCE];
 
 @Injectable()
 export class AuthService {
@@ -30,29 +30,11 @@ export class AuthService {
     if (!user.isActive) throw new UnauthorizedException('Akun Anda dinonaktifkan');
 
     if (BRANCH_LOCKED_ROLES.includes(user.role)) {
-      if (!dto.branchId) throw new BadRequestException('Pilih cabang untuk login sebagai admin/pengajar');
+      if (!dto.branchId) throw new BadRequestException('Pilih cabang untuk login sebagai admin, pengajar, atau keuangan');
       if (dto.branchId !== user.branchId) {
         throw new UnauthorizedException('Akun Anda tidak terdaftar di cabang ini');
       }
     }
-    return this.issue(user);
-  }
-
-  async register(dto: RegisterDto) {
-    const exists = await this.users.exists({ where: { email: dto.email.toLowerCase() } });
-    if (exists) throw new ConflictException('Email sudah terdaftar');
-    const branch = await this.branches.findOneBy({ id: dto.branchId });
-    if (!branch) throw new BadRequestException('Cabang tidak ditemukan');
-    const user = await this.users.save(
-      this.users.create({
-        name: dto.name,
-        email: dto.email.toLowerCase(),
-        phone: dto.phone ?? null,
-        password: await bcrypt.hash(dto.password, 10),
-        role: dto.role,
-        branchId: branch.id,
-      }),
-    );
     return this.issue(user);
   }
 

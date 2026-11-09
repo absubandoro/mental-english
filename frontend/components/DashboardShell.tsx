@@ -1,8 +1,8 @@
 'use client';
 
 import {
-  Bell, Building2, CalendarCheck, ChartPie, ChevronRight, CreditCard, GraduationCap, Home, LayoutDashboard, LayoutGrid, LogOut, Megaphone,
-  Newspaper, Palette, School, ShieldCheck, User as UserIcon, Users, UsersRound,
+  Bell, Building2, CalendarCheck, CalendarDays, ChartPie, ChevronRight, CreditCard, FileBadge, GraduationCap, Home, LayoutDashboard, LayoutGrid,
+  LogOut, Megaphone, Newspaper, Palette, ReceiptText, School, ShieldCheck, User as UserIcon, UserPlus, Users, UsersRound, Wallet,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -26,48 +26,77 @@ interface NavItem {
   roles?: Role[];
 }
 
-type Area = 'student' | 'parent' | 'teacher' | 'admin';
+type Area = 'student' | 'parent' | 'teacher' | 'admin' | 'finance';
 
 const NAV: Record<Area, NavItem[]> = {
   student: [
     { href: '/pelajar', label: 'Profil Saya', short: 'Profil', icon: UserIcon },
     { href: '/pelajar/mading', label: 'Mading Saya', short: 'Mading', icon: Palette },
+    { href: '/pelajar/kalender', label: 'Kalender', icon: CalendarDays },
+    { href: '/pelajar/rapor', label: 'Rapor', icon: FileBadge },
   ],
   parent: [
     { href: '/orang-tua', label: 'Profil Saya', short: 'Profil', icon: UserIcon },
     { href: '/orang-tua/anak', label: 'Profil Anak', short: 'Anak', icon: GraduationCap },
     { href: '/orang-tua/dashboard', label: 'Dashboard Anak', short: 'Dashboard', icon: ChartPie },
+    { href: '/orang-tua/rapor', label: 'Rapor Anak', short: 'Rapor', icon: FileBadge },
+    { href: '/orang-tua/kalender', label: 'Kalender', icon: CalendarDays },
     { href: '/orang-tua/mading', label: 'Mading Anak', short: 'Mading', icon: Palette },
-    { href: '/orang-tua/pembayaran', label: 'Laporan Pembayaran', short: 'Bayar', icon: CreditCard },
+    { href: '/orang-tua/pembayaran', label: 'Pembayaran', short: 'Bayar', icon: CreditCard },
     { href: '/orang-tua/notifikasi', label: 'Notifikasi', short: 'Notifikasi', icon: Bell },
   ],
   teacher: [
-    { href: '/pengajar', label: 'Kelas yang Diajar', short: 'Kelas', icon: School },
     { href: '/pengajar/sesi', label: 'Kelas Hari Ini', short: 'Hari Ini', icon: CalendarCheck },
+    { href: '/pengajar/kalender', label: 'Kalender', icon: CalendarDays },
+    { href: '/pengajar/rapor', label: 'Rapor', icon: FileBadge },
+    { href: '/pengajar', label: 'Kelas yang Diajar', short: 'Kelas', icon: School },
+    { href: '/pengajar/notifikasi', label: 'Notifikasi', icon: Bell },
     { href: '/pengajar/profil', label: 'Profil Saya', short: 'Profil', icon: UserIcon },
   ],
   admin: [
     { href: '/admin', label: 'Ringkasan', short: 'Ringkasan', icon: LayoutDashboard },
+    { href: '/admin/pendaftaran', label: 'Pendaftaran Siswa', short: 'Daftar', icon: UserPlus },
+    { href: '/admin/kalender', label: 'Kalender', icon: CalendarDays },
+    { href: '/admin/kelas', label: 'Kelas', icon: School },
+    { href: '/admin/rapor', label: 'Rapor', icon: FileBadge },
+    { href: '/admin/pembayaran', label: 'Pembayaran', short: 'Bayar', icon: CreditCard },
+    { href: '/admin/tagihan', label: 'Pengaturan Tagihan', short: 'Tagihan', icon: ReceiptText },
     { href: '/admin/blog', label: 'Blog & Vlog', short: 'Blog', icon: Newspaper },
     { href: '/admin/mading', label: 'Moderasi Mading', short: 'Mading', icon: Palette },
     { href: '/admin/pelajar', label: 'User Anak', short: 'Anak', icon: GraduationCap },
     { href: '/admin/orang-tua', label: 'User Orang Tua', short: 'Orang Tua', icon: UsersRound },
     { href: '/admin/pengajar', label: 'Pengajar', icon: Users },
-    { href: '/admin/kelas', label: 'Kelas', icon: School },
-    { href: '/admin/pembayaran', label: 'Pembayaran', short: 'Bayar', icon: CreditCard },
+    { href: '/admin/keuangan', label: 'User Keuangan', icon: Wallet },
     { href: '/admin/notifikasi', label: 'Push Notifikasi', short: 'Notif', icon: Megaphone },
+    { href: '/admin/kotak-masuk', label: 'Kotak Masuk', icon: Bell },
     { href: '/admin/cabang', label: 'Cabang', icon: Building2, roles: ['SUPER_ADMIN'] },
     { href: '/admin/admin-cabang', label: 'Admin Cabang', icon: ShieldCheck, roles: ['SUPER_ADMIN'] },
     { href: '/admin/profil', label: 'Profil Saya', short: 'Profil', icon: UserIcon },
+  ],
+  finance: [
+    { href: '/keuangan', label: 'Pembayaran', short: 'Bayar', icon: CreditCard },
+    { href: '/keuangan/tagihan', label: 'Pengaturan Tagihan', short: 'Tagihan', icon: ReceiptText },
+    { href: '/keuangan/kalender', label: 'Kalender', icon: CalendarDays },
+    { href: '/keuangan/kotak-masuk', label: 'Kotak Masuk', short: 'Pesan', icon: Bell },
+    { href: '/keuangan/profil', label: 'Profil Saya', short: 'Profil', icon: UserIcon },
   ],
 };
 
 /** Menu utama di tab bar HP (maks. 4 + tombol "Lainnya") */
 const MOBILE_TABS: Record<Area, string[]> = {
-  student: ['/pelajar/mading', '/pelajar'],
-  parent: ['/orang-tua/dashboard', '/orang-tua/anak', '/orang-tua/pembayaran', '/orang-tua/notifikasi'],
-  teacher: ['/pengajar/sesi', '/pengajar', '/pengajar/profil'],
-  admin: ['/admin', '/admin/kelas', '/admin/pembayaran', '/admin/notifikasi'],
+  student: ['/pelajar/mading', '/pelajar/kalender', '/pelajar/rapor', '/pelajar'],
+  parent: ['/orang-tua/dashboard', '/orang-tua/rapor', '/orang-tua/pembayaran', '/orang-tua/notifikasi'],
+  teacher: ['/pengajar/sesi', '/pengajar/kalender', '/pengajar/rapor', '/pengajar'],
+  admin: ['/admin', '/admin/pendaftaran', '/admin/pembayaran', '/admin/kalender'],
+  finance: ['/keuangan', '/keuangan/tagihan', '/keuangan/kalender', '/keuangan/kotak-masuk'],
+};
+
+/** Halaman kotak masuk notifikasi per area */
+const INBOX: Partial<Record<Area, string>> = {
+  parent: '/orang-tua/notifikasi',
+  teacher: '/pengajar/notifikasi',
+  admin: '/admin/kotak-masuk',
+  finance: '/keuangan/kotak-masuk',
 };
 
 function isActive(href: string, pathname: string) {
@@ -81,13 +110,21 @@ export function DashboardShell({ area, roles, children }: { area: Area; roles: R
   const router = useRouter();
   const [sheet, setSheet] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [pendingPay, setPendingPay] = useState(0);
+  const [newEnroll, setNewEnroll] = useState(0);
   const { branches } = useBranches();
 
   useEffect(() => setSheet(false), [pathname]);
 
   useEffect(() => {
-    if (!ready || area !== 'parent') return;
-    const load = () => api<{ unread: number }>('/notifications/unread-count').then((r) => setUnread(r.unread)).catch(() => undefined);
+    if (!ready) return;
+    const load = () => {
+      if (INBOX[area]) api<{ unread: number }>('/notifications/unread-count').then((r) => setUnread(r.unread)).catch(() => undefined);
+      const q = activeBranchId ? { branchId: activeBranchId } : undefined;
+      if (area === 'admin' || area === 'finance')
+        api<{ count: number }>('/admin/payments/pending-count', { query: q }).then((r) => setPendingPay(r.count)).catch(() => undefined);
+      if (area === 'admin') api<{ count: number }>('/admin/enrollments/new-count', { query: q }).then((r) => setNewEnroll(r.count)).catch(() => undefined);
+    };
     load();
     const t = setInterval(load, 30000);
     window.addEventListener('me:notifications', load);
@@ -95,7 +132,7 @@ export function DashboardShell({ area, roles, children }: { area: Area; roles: R
       clearInterval(t);
       window.removeEventListener('me:notifications', load);
     };
-  }, [ready, area]);
+  }, [ready, area, activeBranchId, pathname]);
 
   if (!ready || !user) {
     return (
@@ -108,7 +145,12 @@ export function DashboardShell({ area, roles, children }: { area: Area; roles: R
   const items = NAV[area].filter((i) => !i.roles || i.roles.includes(user.role));
   const branchName = branches.find((b) => b.id === (user.branchId ?? activeBranchId))?.name;
   const current = items.find((i) => isActive(i.href, pathname));
-  const badgeFor = (href: string) => (area === 'parent' && href.endsWith('/notifikasi') ? unread : 0);
+  const badgeFor = (href: string) => {
+    if (href === INBOX[area]) return unread;
+    if (href === '/admin/pembayaran' || href === '/keuangan') return pendingPay;
+    if (href === '/admin/pendaftaran') return newEnroll;
+    return 0;
+  };
   const doLogout = () => {
     logout();
     router.replace('/login');
@@ -206,8 +248,8 @@ export function DashboardShell({ area, roles, children }: { area: Area; roles: R
               <div className="truncate text-[15px] leading-tight font-semibold text-white">{current?.label ?? 'Mental English'}</div>
               <div className="truncate text-[11px] leading-tight text-slate-400">{branchName ?? ROLE_LABEL[user.role]}</div>
             </div>
-            {area === 'parent' && (
-              <Link href="/orang-tua/notifikasi" className="relative flex size-10 items-center justify-center rounded-full text-slate-300 active:bg-white/10" aria-label="Notifikasi">
+            {INBOX[area] && (
+              <Link href={INBOX[area]!} className="relative flex size-10 items-center justify-center rounded-full text-slate-300 active:bg-white/10" aria-label="Notifikasi">
                 <Bell className="size-[22px]" />
                 {unread > 0 && <span className="absolute top-2 right-2 size-2.5 rounded-full bg-rose-500 ring-2 ring-ink-950" />}
               </Link>

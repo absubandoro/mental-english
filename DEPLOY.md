@@ -147,6 +147,14 @@ Buka `https://mentalenglish.id` — selesai. 🎉
 
 ---
 
+## Fitur otomatis yang berjalan sendiri
+
+- **Tagihan SPP bulanan** dibuat otomatis setiap hari pukul 06.00 WIB (dan saat API start) untuk cabang yang mengaktifkan tagihan otomatis, pada atau setelah tanggal tagihan yang diatur di menu **Pengaturan Tagihan**. Tidak pernah dobel untuk periode yang sama.
+- **Pengingat** dikirim ke orang tua H-3 sebelum jatuh tempo dan sekali saat lewat jatuh tempo.
+- Zona waktu memakai `Asia/Jakarta`. Untuk mengubahnya, tambahkan `TZ_APP=Asia/Makassar` (dll.) di `backend/.env`.
+- Untuk mematikan sementara: `BILLING_SCHEDULER=false` di `backend/.env`, lalu `pm2 reload ecosystem.config.js --update-env`.
+- Foto & video unggahan tersimpan di `backend/uploads/` (gambar maks. 8 MB, video maks. 100 MB) dan ikut di-backup oleh `deploy/backup.sh`. Pastikan disk VPS cukup jika sering mengunggah video.
+
 ## Mulai dipakai sungguhan (hapus data demo)
 
 Hapus semua data demo, sisakan cabang Pusat (Jatimurni, Bekasi) dan satu Super Admin:

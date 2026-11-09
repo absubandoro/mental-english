@@ -8,9 +8,10 @@ import { Badge, Button, confirmDelete, Empty, ErrorBox, Field, ImageField, Modal
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import { useApi, useDebounced } from '@/lib/hooks';
-import type { Paged, Post, PostType } from '@/lib/types';
+import type { MediaItem, Paged, Post, PostType } from '@/lib/types';
+import { MediaUploader, VideoField } from '@/components/Media';
 
-const EMPTY = { type: 'BLOG' as PostType, title: '', excerpt: '', content: '', coverUrl: '', videoUrl: '', published: true };
+const EMPTY = { type: 'BLOG' as PostType, title: '', excerpt: '', content: '', coverUrl: '', videoUrl: '', media: [] as MediaItem[], published: true };
 
 export default function AdminBlog() {
   const scope = useBranchScope();
@@ -28,7 +29,11 @@ export default function AdminBlog() {
   const openForm = (p?: Post) => {
     setEditing(p ?? null);
     setError(null);
-    setForm(p ? { type: p.type, title: p.title, excerpt: p.excerpt ?? '', content: p.content, coverUrl: p.coverUrl ?? '', videoUrl: p.videoUrl ?? '', published: p.published } : EMPTY);
+    setForm(
+      p
+        ? { type: p.type, title: p.title, excerpt: p.excerpt ?? '', content: p.content, coverUrl: p.coverUrl ?? '', videoUrl: p.videoUrl ?? '', media: p.media ?? [], published: p.published }
+        : EMPTY,
+    );
     setOpen(true);
   };
 
@@ -140,12 +145,9 @@ export default function AdminBlog() {
           <Field label="Ringkasan">
             <input className="input" value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} />
           </Field>
-          {form.type === 'VLOG' && (
-            <Field label="URL video YouTube">
-              <input className="input" placeholder="https://www.youtube.com/watch?v=…" value={form.videoUrl} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} />
-            </Field>
-          )}
+          {form.type === 'VLOG' && <VideoField value={form.videoUrl} onChange={(videoUrl) => setForm({ ...form, videoUrl })} />}
           <ImageField label="Gambar sampul" value={form.coverUrl} onChange={(coverUrl) => setForm({ ...form, coverUrl })} />
+          <MediaUploader label="Galeri foto & video (opsional)" value={form.media} onChange={(media) => setForm({ ...form, media })} />
           <Field label="Isi" hint="Pisahkan paragraf dengan baris kosong. Gunakan ## untuk sub-judul, - untuk daftar, **teks** untuk tebal.">
             <textarea className="input min-h-64 font-mono text-[13px]" required value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
           </Field>

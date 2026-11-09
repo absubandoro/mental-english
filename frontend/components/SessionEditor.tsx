@@ -8,7 +8,8 @@ import { api } from '@/lib/api';
 import { ATTENDANCE_LABEL, formatDate, SESSION_TYPE_LABEL } from '@/lib/format';
 import { useApi } from '@/lib/hooks';
 import { SESSION_TONE } from '@/lib/tones';
-import type { AttendanceStatus, ClassSessionDetail, SessionType } from '@/lib/types';
+import type { AttendanceStatus, ClassSessionDetail, MediaItem, SessionType } from '@/lib/types';
+import { MediaGallery, MediaUploader } from './Media';
 import { Avatar, Badge, Button, confirmDelete, ErrorBox, Field, Spinner } from './ui';
 
 const STATUSES: AttendanceStatus[] = ['HADIR', 'IZIN', 'SAKIT', 'ALPA'];
@@ -27,14 +28,14 @@ export function SessionEditor({ id, readOnly, base }: { id: string; readOnly?: b
   const { data, loading, error, setData } = useApi<ClassSessionDetail>(`${apiBase}/${id}`);
   const router = useRouter();
   const [rows, setRows] = useState<Row[]>([]);
-  const [meta, setMeta] = useState({ topic: '', type: 'BELAJAR' as SessionType, report: '' });
+  const [meta, setMeta] = useState({ topic: '', type: 'BELAJAR' as SessionType, report: '', media: [] as MediaItem[] });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     if (!data) return;
-    setMeta({ topic: data.topic, type: data.type, report: data.report ?? '' });
+    setMeta({ topic: data.topic, type: data.type, report: data.report ?? '', media: data.media ?? [] });
     setRows(
       data.students.map((s) => ({
         studentId: s.id,
@@ -166,10 +167,15 @@ export function SessionEditor({ id, readOnly, base }: { id: string; readOnly?: b
         </ul>
       </section>
 
-      <section className="card p-5">
+      <section className="card space-y-4 p-5">
         <Field label="Report pengajar" hint="Ringkasan kegiatan kelas — terlihat oleh orang tua di dashboard anak.">
           <textarea className="input min-h-32" disabled={readOnly} value={meta.report} onChange={(e) => setMeta({ ...meta, report: e.target.value })} placeholder="Apa yang dipelajari hari ini, perkembangan pelajar, PR, dll." />
         </Field>
+        {readOnly ? (
+          meta.media.length > 0 && <MediaGallery items={meta.media} />
+        ) : (
+          <MediaUploader label="Foto & video kegiatan (terlihat oleh orang tua)" value={meta.media} onChange={(media) => setMeta({ ...meta, media })} />
+        )}
       </section>
 
       {!readOnly && (

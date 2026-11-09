@@ -3,12 +3,13 @@
 import { CalendarClock, Pencil, Plus, School, Trash2, Users } from 'lucide-react';
 import { useState } from 'react';
 import { BranchNotice, MultiPick, SearchInput, useBranchScope } from '@/components/admin';
+import { ScheduleEditor } from '@/components/ScheduleEditor';
 import { Avatar, Badge, Button, confirmDelete, Empty, ErrorBox, Field, Modal, PageHeader, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useApi, useDebounced } from '@/lib/hooks';
-import type { ClassRoom, Paged, User } from '@/lib/types';
+import type { ClassRoom, ClassSchedule, Paged, User } from '@/lib/types';
 
-const EMPTY = { name: '', schedule: '', level: '', description: '', studentIds: [] as string[], teacherIds: [] as string[] };
+const EMPTY = { name: '', level: '', description: '', schedules: [] as ClassSchedule[], studentIds: [] as string[], teacherIds: [] as string[] };
 
 export default function AdminKelas() {
   const scope = useBranchScope();
@@ -28,7 +29,14 @@ export default function AdminKelas() {
     setError(null);
     setForm(
       c
-        ? { name: c.name, schedule: c.schedule ?? '', level: c.level ?? '', description: c.description ?? '', studentIds: c.students.map((s) => s.id), teacherIds: c.teachers.map((t) => t.id) }
+        ? {
+            name: c.name,
+            level: c.level ?? '',
+            description: c.description ?? '',
+            schedules: (c.schedules ?? []).map(({ dayOfWeek, startTime, endTime, room }) => ({ dayOfWeek, startTime, endTime, room: room ?? '' })),
+            studentIds: c.students.map((s) => s.id),
+            teacherIds: c.teachers.map((t) => t.id),
+          }
         : EMPTY,
     );
     setOpen(true);
@@ -111,7 +119,11 @@ export default function AdminKelas() {
             try {
               await api(editing ? `/admin/classes/${editing.id}` : '/admin/classes', {
                 method: editing ? 'PATCH' : 'POST',
-                body: { ...form, ...(editing ? {} : { branchId: scope.branchId }) },
+                body: {
+                  ...form,
+                  schedules: form.schedules.map((x) => ({ ...x, room: x.room || undefined })),
+                  ...(editing ? {} : { branchId: scope.branchId }),
+                },
               });
               setOpen(false);
               reload();
@@ -123,17 +135,15 @@ export default function AdminKelas() {
           }}
         >
           <ErrorBox message={error} />
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Nama kelas">
               <input className="input" required minLength={2} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </Field>
-            <Field label="Jadwal">
-              <input className="input" placeholder="Senin & Rabu, 15.30" value={form.schedule} onChange={(e) => setForm({ ...form, schedule: e.target.value })} />
             </Field>
             <Field label="Level">
               <input className="input" placeholder="Kids / Teens" value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} />
             </Field>
           </div>
+          <ScheduleEditor value={form.schedules} onChange={(schedules) => setForm({ ...form, schedules })} />
           <Field label="Deskripsi">
             <input className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </Field>

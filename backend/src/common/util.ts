@@ -22,3 +22,27 @@ export function randomSuffix() {
 export function clean<T extends object>(obj: T): Partial<T> {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as Partial<T>;
 }
+
+const TZ = process.env.TZ_APP || 'Asia/Jakarta';
+
+/** Tanggal hari ini (YYYY-MM-DD) menurut zona waktu lembaga */
+export function todayLocal(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+}
+
+export function addDays(date: string, n: number): string {
+  const d = new Date(date + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** 0 = Minggu ... 6 = Sabtu */
+export function dayOfWeek(date: string): number {
+  return new Date(date + 'T00:00:00Z').getUTCDay();
+}
+
+export const DAY_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+export function rupiah(n: number) {
+  return 'Rp ' + n.toLocaleString('id-ID');
+}

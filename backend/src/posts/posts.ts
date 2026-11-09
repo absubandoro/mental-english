@@ -5,6 +5,7 @@ import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { IsBoolean, IsEnum, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
 import { Repository } from 'typeorm';
 import { Post as PostEntity, PostType } from '../entities';
+import { MediaField, MediaDto } from '../common/media';
 import { ADMIN_ROLES, assertBranch, Auth, AuthUser, CurrentUser, requireBranch, scopeBranch } from '../common/auth';
 import { clean, paginate, randomSuffix, slugify } from '../common/util';
 
@@ -17,6 +18,7 @@ export class PostDto {
   @IsOptional() @IsString() videoUrl?: string;
   @IsOptional() @IsBoolean() published?: boolean;
   @IsOptional() @IsUUID() branchId?: string;
+  @MediaField() media?: MediaDto[];
 }
 
 export interface PostQuery {

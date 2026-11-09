@@ -80,6 +80,7 @@ export class ParentService {
           note: a.note,
           teacherReport: a.session.report,
           teacher: a.session.teacher?.name,
+          media: a.session.media ?? [],
         })),
       },
       exams: {

@@ -19,6 +19,8 @@ export class User {
   @Column({ type: 'varchar', nullable: true }) avatarUrl: string | null;
   @Column({ type: 'text', nullable: true }) bio: string | null;
   @Column({ default: true }) isActive: boolean;
+  /** Pelajar: SPP khusus (kosong = ikut nominal cabang) */
+  @Column({ type: 'integer', nullable: true }) monthlyFee: number | null;
 
   @Column({ type: 'uuid', nullable: true }) branchId: string | null;
   @ManyToOne(() => Branch, { nullable: true, onDelete: 'SET NULL' })

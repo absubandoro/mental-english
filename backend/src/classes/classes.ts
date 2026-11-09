@@ -2,11 +2,32 @@ import {
   BadRequestException, Body, Controller, Delete, Get, Injectable, Module, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Query,
 } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
-import { IsArray, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsInt, IsOptional, IsString, IsUUID, Matches, Max, Min, MinLength, ValidateNested } from 'class-validator';
 import { In, Repository } from 'typeorm';
-import { ClassRoom, Role, User } from '../entities';
+import { ClassRoom, ClassSchedule, Role, User } from '../entities';
 import { ADMIN_ROLES, assertBranch, Auth, AuthUser, CurrentUser, requireBranch, scopeBranch } from '../common/auth';
-import { clean } from '../common/util';
+import { clean, DAY_NAMES } from '../common/util';
+
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+export class ScheduleDto {
+  @IsInt() @Min(0) @Max(6) dayOfWeek: number;
+  @Matches(TIME, { message: 'Jam mulai harus berformat HH:MM' }) startTime: string;
+  @Matches(TIME, { message: 'Jam selesai harus berformat HH:MM' }) endTime: string;
+  @IsOptional() @IsString() room?: string;
+}
+
+/** "Senin & Rabu, 15:30–17:00" dari slot jadwal */
+export function summarizeSchedule(slots: { dayOfWeek: number; startTime: string; endTime: string }[]) {
+  if (!slots.length) return null;
+  const groups = new Map<string, number[]>();
+  for (const s of [...slots].sort((a, b) => ((a.dayOfWeek + 6) % 7) - ((b.dayOfWeek + 6) % 7))) {
+    const k = `${s.startTime}–${s.endTime}`;
+    groups.set(k, [...(groups.get(k) ?? []), s.dayOfWeek]);
+  }
+  return [...groups.entries()].map(([time, days]) => `${days.map((d) => DAY_NAMES[d]).join(' & ')}, ${time}`).join('; ');
+}
 
 export class ClassDto {
   @IsString() @MinLength(2) name: string;
@@ -16,6 +37,7 @@ export class ClassDto {
   @IsOptional() @IsUUID() branchId?: string;
   @IsOptional() @IsArray() @IsUUID('all', { each: true }) studentIds?: string[];
   @IsOptional() @IsArray() @IsUUID('all', { each: true }) teacherIds?: string[];
+  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => ScheduleDto) schedules?: ScheduleDto[];
 }
 
 const SAFE = (u: User) => ({ id: u.id, name: u.name, email: u.email, avatarUrl: u.avatarUrl, level: u.level });
@@ -30,6 +52,7 @@ export class ClassesService {
   private present(c: ClassRoom, viewerId?: string) {
     return {
       ...c,
+      schedules: [...(c.schedules ?? [])].sort((a, b) => ((a.dayOfWeek + 6) % 7) - ((b.dayOfWeek + 6) % 7) || a.startTime.localeCompare(b.startTime)),
       students: (c.students ?? []).map(SAFE),
       teachers: (c.teachers ?? []).map(SAFE),
       assignedToMe: viewerId ? (c.teachers ?? []).some((t) => t.id === viewerId) : undefined,
@@ -42,6 +65,7 @@ export class ClassesService {
       .leftJoinAndSelect('c.students', 's')
       .leftJoinAndSelect('c.teachers', 't')
       .leftJoinAndSelect('c.branch', 'b')
+      .leftJoinAndSelect('c.schedules', 'sc')
       .orderBy('c.name', 'ASC');
     const branchId = scopeBranch(actor, q.branchId);
     if (branchId) qb.andWhere('c.branchId = :branchId', { branchId });
@@ -52,7 +76,7 @@ export class ClassesService {
   }
 
   async entity(actor: AuthUser, id: string) {
-    const c = await this.repo.findOne({ where: { id }, relations: { students: true, teachers: true, branch: true } });
+    const c = await this.repo.findOne({ where: { id }, relations: { students: true, teachers: true, branch: true, schedules: true } });
     if (!c) throw new NotFoundException('Kelas tidak ditemukan');
     assertBranch(actor, c.branchId);
     return c;
@@ -74,9 +98,10 @@ export class ClassesService {
 
   async create(actor: AuthUser, dto: ClassDto) {
     const branchId = requireBranch(actor, dto.branchId);
-    const { studentIds, teacherIds, ...rest } = dto;
+    const { studentIds, teacherIds, schedules, ...rest } = dto;
     const c = this.repo.create({
       ...rest,
+      ...(schedules ? { schedules: schedules.map((x) => Object.assign(new ClassSchedule(), x)), schedule: summarizeSchedule(schedules) } : {}),
       branchId,
       students: (await this.members(studentIds, Role.STUDENT, branchId)) ?? [],
       teachers: (await this.members(teacherIds, Role.TEACHER, branchId)) ?? [],
@@ -87,8 +112,12 @@ export class ClassesService {
 
   async update(actor: AuthUser, id: string, dto: Partial<ClassDto>) {
     const c = await this.entity(actor, id);
-    const { studentIds, teacherIds, branchId: _b, ...rest } = dto;
+    const { studentIds, teacherIds, schedules, branchId: _b, ...rest } = dto;
     Object.assign(c, clean(rest));
+    if (schedules) {
+      c.schedules = schedules.map((x) => Object.assign(new ClassSchedule(), x));
+      c.schedule = summarizeSchedule(schedules);
+    }
     const students = await this.members(studentIds, Role.STUDENT, c.branchId);
     const teachers = await this.members(teacherIds, Role.TEACHER, c.branchId);
     if (students) c.students = students;

@@ -52,7 +52,7 @@ export function LandingHero({ cities }: { cities: string[] }) {
         ]
       : [
           { key: 'login', href: '/login', caption: 'Pelajar · Orang tua · Pengajar', title: 'Masuk', photo: PHOTOS.welcome, icon: <LogIn className="size-10" /> },
-          { key: 'daftar', href: '/daftar', caption: 'Akun baru', title: 'Daftar', photo: PHOTOS.holiday, icon: <UserPlus className="size-10" /> },
+          { key: 'daftar', href: '/daftar', caption: 'Pendaftaran siswa baru', title: 'Daftar Siswa', photo: PHOTOS.holiday, icon: <UserPlus className="size-10" /> },
         ]),
   ];
   const total = cards.length;

@@ -10,10 +10,13 @@ import * as bcrypt from 'bcryptjs';
 import { config } from 'dotenv';
 import { DataSource } from 'typeorm';
 import {
-  Attendance, AttendanceStatus, Branch, ClassRoom, ClassSession, ExamResult, Mading, Notification, NotificationRecipient,
-  NotificationTarget, Payment, PaymentStatus, Post, PostType, Role, SessionType, User,
+  Attendance, AttendanceStatus, Branch, CalendarEvent, CalendarEventType, ClassRoom, ClassSchedule, ClassSession, Enrollment, EnrollmentStatus,
+  ExamResult, Mading, Notification, NotificationRecipient, NotificationTarget, Payment, PaymentSource, PaymentStatus, Post, PostType,
+  ProgressReport, ReportStatus, Role, SessionType, User,
 } from './entities';
-import { slugify } from './common/util';
+import { addDays, dayOfWeek, slugify, todayLocal } from './common/util';
+import { summarizeSchedule } from './classes/classes';
+import { DEFAULT_SKILLS } from './reports/reports';
 import { dataSourceOptions } from './data-source';
 
 config();
@@ -46,10 +49,18 @@ const MADING_SAMPLES = [
   },
 ];
 
-function daysAgo(n: number) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+/** N kemunculan terakhir (sebelum hari ini) dari hari-hari jadwal, urut lama -> baru */
+function pastClassDays(days: number[], count: number) {
+  const out: string[] = [];
+  for (let d = addDays(todayLocal(), -1); out.length < count; d = addDays(d, -1)) {
+    if (days.includes(dayOfWeek(d))) out.unshift(d);
+  }
+  return out;
+}
+
+/** Kemunculan berikutnya (>= hari ini + offset) dari hari jadwal */
+function nextClassDay(days: number[], offset: number) {
+  for (let d = addDays(todayLocal(), offset); ; d = addDays(d, 1)) if (days.includes(dayOfWeek(d))) return d;
 }
 
 function monthOffset(n: number) {
@@ -104,7 +115,22 @@ async function main() {
   ];
   const branches: Branch[] = [];
   for (const b of branchData) {
-    branches.push(await branchRepo.save(branchRepo.create({ ...b, slug: slugify(b.name), mapQuery: b.address })));
+    branches.push(
+      await branchRepo.save(
+        branchRepo.create({
+          ...b,
+          slug: slugify(b.name),
+          mapQuery: b.address,
+          billingEnabled: b.name.includes('Pusat'),
+          billingDay: 5,
+          billingAmount: 450000,
+          billingDescription: 'SPP Bulanan',
+          billingDueDays: 10,
+          bankAccounts: [{ bank: 'BCA', number: '1234567890', holder: 'Mental English (contoh)' }],
+          paymentInstructions: 'Cantumkan nama siswa pada berita transfer. Unggah bukti transfer di menu Pembayaran agar segera diverifikasi.',
+        }),
+      ),
+    );
   }
 
   await mk({ name: 'Super Admin', email: 'superadmin@mentalenglish.id', role: Role.SUPER_ADMIN });
@@ -117,10 +143,16 @@ async function main() {
   const paymentRepo = ds.getRepository(Payment);
   const notifRepo = ds.getRepository(Notification);
   const recipientRepo = ds.getRepository(NotificationRecipient);
+  const eventRepo = ds.getRepository(CalendarEvent);
+  const reportRepo = ds.getRepository(ProgressReport);
+  const enrollRepo = ds.getRepository(Enrollment);
+  const attRepo = ds.getRepository(Attendance);
+  const examRepo = ds.getRepository(ExamResult);
 
   for (const [bi, branch] of branches.entries()) {
     const code = ['pusat', 'bandung', 'surabaya'][bi];
     const admin = await mk({ name: `Admin ${branch.city}`, email: `admin.${code}@mentalenglish.id`, role: Role.ADMIN, branchId: branch.id });
+    const finance = await mk({ name: `Keuangan ${branch.city}`, email: `keuangan.${code}@mentalenglish.id`, role: Role.FINANCE, branchId: branch.id });
     const teachers = [
       await mk({ name: `Miss ${['Rina', 'Sarah', 'Nadia'][bi]}`, email: `teacher1.${code}@mentalenglish.id`, role: Role.TEACHER, branchId: branch.id, bio: 'Pengajar speaking & grammar' }),
       await mk({ name: `Mr. ${['Andi', 'Bayu', 'Reza'][bi]}`, email: `teacher2.${code}@mentalenglish.id`, role: Role.TEACHER, branchId: branch.id, bio: 'Pengajar vocabulary & listening' }),
@@ -146,30 +178,45 @@ async function main() {
           school: `SD/SMP Contoh ${i + 1}`,
           level: i < 2 ? 'Kids' : 'Teens',
           birthDate: `201${2 + i}-0${i + 1}-15`,
+          // Contoh SPP khusus (diskon saudara)
+          monthlyFee: i === 3 ? 400000 : null,
         }),
       );
     }
 
-    const kids = await classRepo.save(classRepo.create({ name: 'Kids Explorer A', level: 'Kids', schedule: 'Senin & Rabu, 15.30', branchId: branch.id, students: students.slice(0, 2), teachers: [teachers[0]] }));
-    const teens = await classRepo.save(classRepo.create({ name: 'Teens Speaking B', level: 'Teens', schedule: 'Selasa & Kamis, 16.00', branchId: branch.id, students: students.slice(2), teachers: [teachers[1]] }));
+    const slots = (days: number[], startTime: string, endTime: string) =>
+      days.map((dayOfWeek) => Object.assign(new ClassSchedule(), { dayOfWeek, startTime, endTime, room: 'Ruang 1' }));
+    const kidsSlots = slots([1, 3], '15:30', '17:00');
+    const teensSlots = slots([2, 4], '16:00', '17:30');
+    const kids = await classRepo.save(
+      classRepo.create({ name: 'Kids Explorer A', level: 'Kids', schedule: summarizeSchedule(kidsSlots), schedules: kidsSlots, branchId: branch.id, students: students.slice(0, 2), teachers: [teachers[0]] }),
+    );
+    const teens = await classRepo.save(
+      classRepo.create({ name: 'Teens Speaking B', level: 'Teens', schedule: summarizeSchedule(teensSlots), schedules: teensSlots, branchId: branch.id, students: students.slice(2), teachers: [teachers[1]] }),
+    );
+    const classDays = [[1, 3], [2, 4]];
 
     for (const [ci, cls] of [kids, teens].entries()) {
       const teacher = teachers[ci];
-      const plan: [number, SessionType, string][] = [
-        [14, SessionType.BELAJAR, 'Daily Routines & Simple Present'],
-        [10, SessionType.OUTDOOR, 'Outdoor Speaking: Ordering at a Café'],
-        [7, SessionType.BELAJAR, 'Describing People'],
-        [3, SessionType.UJIAN, 'Monthly Test — Unit 1-3'],
+      const plan: [SessionType, string][] = [
+        [SessionType.BELAJAR, 'Daily Routines & Simple Present'],
+        [SessionType.OUTDOOR, 'Outdoor Speaking: Ordering at a Café'],
+        [SessionType.BELAJAR, 'Describing People'],
+        [SessionType.UJIAN, 'Monthly Test — Unit 1-3'],
       ];
-      for (const [k, [ago, type, topic]] of plan.entries()) {
+      const dates = pastClassDays(classDays[ci], plan.length);
+      for (const [k, [type, topic]] of plan.entries()) {
         const statuses = [AttendanceStatus.HADIR, AttendanceStatus.HADIR, AttendanceStatus.IZIN, AttendanceStatus.SAKIT, AttendanceStatus.ALPA];
         await sessionRepo.save(
           sessionRepo.create({
             classId: cls.id,
             teacherId: teacher.id,
-            date: daysAgo(ago),
+            date: dates[k],
             type,
             topic,
+            media: type === SessionType.OUTDOOR
+              ? [{ url: '/landing/team.jpg', type: 'image' as const, name: 'outdoor-1.jpg' }, { url: '/landing/holiday.jpg', type: 'image' as const, name: 'outdoor-2.jpg' }]
+              : [],
             report: type === SessionType.UJIAN
               ? 'Ujian berjalan lancar. Sebagian besar pelajar sudah percaya diri saat sesi speaking.'
               : 'Pelajar aktif berdiskusi. Perlu latihan pengucapan pada beberapa kosakata baru.',
@@ -186,22 +233,85 @@ async function main() {
 
     for (const [si, s] of students.entries()) {
       for (const m of [-2, -1, 0]) {
-        const status = m < 0 ? PaymentStatus.LUNAS : si % 2 ? PaymentStatus.BELUM_BAYAR : PaymentStatus.MENUNGGU;
+        // Bulan ini: 0 = menunggu verifikasi (ada bukti), 1 = belum bayar, 2 = bukti ditolak, 3 = belum bayar
+        const status = m < 0 ? PaymentStatus.LUNAS : si === 0 ? PaymentStatus.MENUNGGU : PaymentStatus.BELUM_BAYAR;
         await paymentRepo.save(
           paymentRepo.create({
             studentId: s.id,
             branchId: branch.id,
             period: monthOffset(m),
             description: 'SPP Bulanan',
-            amount: 450000,
+            amount: s.monthlyFee ?? 450000,
             status,
-            dueDate: `${monthOffset(m)}-10`,
+            source: m === 0 ? PaymentSource.AUTO : PaymentSource.MANUAL,
+            dueDate: `${monthOffset(m)}-15`,
             paidAt: status === PaymentStatus.LUNAS ? new Date(`${monthOffset(m)}-08T10:00:00Z`) : null,
-            method: status === PaymentStatus.LUNAS ? 'Transfer Bank' : null,
+            method: status === PaymentStatus.LUNAS ? 'Transfer Bank' : si === 0 && m === 0 ? 'Transfer BCA' : null,
+            verifiedById: status === PaymentStatus.LUNAS ? finance.id : null,
+            verifiedAt: status === PaymentStatus.LUNAS ? new Date(`${monthOffset(m)}-08T12:00:00Z`) : null,
+            ...(m === 0 && si === 0
+              ? { proofUrl: '/samples/bukti-transfer.png', proofNote: 'Transfer dari rekening ayah', proofUploadedAt: new Date() }
+              : {}),
+            ...(m === 0 && si === 2
+              ? { proofUrl: '/samples/bukti-transfer.png', proofUploadedAt: new Date(), rejectionReason: 'Nominal transfer tidak sesuai tagihan', verifiedById: finance.id, verifiedAt: new Date() }
+              : {}),
           }),
         );
       }
     }
+
+    // Agenda kalender cabang
+    const holiday = nextClassDay([1, 2, 3, 4], 6);
+    await eventRepo.save([
+      eventRepo.create({ title: 'Libur Cabang', description: 'Kegiatan kelas diliburkan.', type: CalendarEventType.LIBUR, startDate: holiday, endDate: holiday, branchId: branch.id, createdById: admin.id }),
+      eventRepo.create({ title: 'Speaking Day', description: 'Pentas speaking seluruh pelajar. Orang tua dipersilakan hadir.', type: CalendarEventType.ACARA, startDate: addDays(todayLocal(), 11), endDate: addDays(todayLocal(), 11), startTime: '09:00', endTime: '12:00', branchId: branch.id, createdById: admin.id }),
+      eventRepo.create({ title: 'Ujian Bulanan Kids', type: CalendarEventType.UJIAN, startDate: nextClassDay([1, 3], 14), endDate: nextClassDay([1, 3], 14), startTime: '15:30', endTime: '17:00', classId: kids.id, branchId: branch.id, createdById: admin.id }),
+    ]);
+
+    // Rapor: terbit untuk pelajar pertama tiap kelas, draf untuk pelajar kedua
+    const periodStart = addDays(todayLocal(), -30);
+    const periodEnd = todayLocal();
+    for (const [ci, cls] of [kids, teens].entries()) {
+      for (const [k, st] of cls.students.entries()) {
+        const atts = await attRepo.find({ where: { studentId: st.id }, relations: { session: true } });
+        const c = { HADIR: 0, IZIN: 0, SAKIT: 0, ALPA: 0 } as Record<AttendanceStatus, number>;
+        atts.forEach((a) => c[a.status]++);
+        const ex = await examRepo.find({ where: { studentId: st.id }, relations: { session: true } });
+        const scored = ex.filter((e) => e.score != null);
+        const published = k === 0;
+        await reportRepo.save(
+          reportRepo.create({
+            title: 'Rapor Perkembangan Bulanan',
+            periodStart,
+            periodEnd,
+            studentId: st.id,
+            classId: cls.id,
+            branchId: branch.id,
+            authorId: teachers[ci].id,
+            skills: DEFAULT_SKILLS.map((sk, j) => ({ ...sk, score: published ? 70 + ((j * 7 + k * 5 + ci * 3) % 26) : null, note: published && j === 0 ? 'Sudah berani menjawab pertanyaan guru dengan kalimat lengkap.' : null })),
+            overallGrade: published ? 'B+' : null,
+            teacherComment: published ? `${st.name.split(' ')[0]} menunjukkan kemajuan yang baik, terutama keberanian berbicara di depan kelas. Kosakata bertambah dan semakin percaya diri saat kegiatan outdoor.` : null,
+            recommendation: published ? 'Latihan membaca cerita pendek 10 menit setiap hari dan biasakan menjawab dengan kalimat lengkap.' : null,
+            attendanceSummary: { total: atts.length, ...c, ratio: atts.length ? Math.round((c.HADIR / atts.length) * 1000) / 10 : null },
+            examSummary: {
+              count: ex.length,
+              average: scored.length ? Math.round((scored.reduce((a, e) => a + (e.score ?? 0), 0) / scored.length) * 10) / 10 : null,
+              items: ex.map((e) => ({ date: e.session.date, topic: e.session.topic, score: e.score, grade: e.grade })),
+            },
+            media: published ? [{ url: '/landing/team.jpg', type: 'image' as const, name: 'kegiatan.jpg' }] : [],
+            status: published ? ReportStatus.PUBLISHED : ReportStatus.DRAFT,
+            publishedAt: published ? new Date() : null,
+          }),
+        );
+      }
+    }
+
+    // Pendaftaran siswa baru (menunggu ditinjau admin)
+    const enrollPass = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+    await enrollRepo.save([
+      enrollRepo.create({ branchId: branch.id, studentName: `Nadia Putri ${code === 'pusat' ? '' : branch.city}`.trim(), studentBirthDate: '2016-04-12', studentSchool: 'SD Negeri Contoh', program: 'Kids', parentName: 'Ibu Rahma', parentPhone: '0812-3456-7890', parentEmail: `rahma.${code}@contoh.id`, passwordHash: enrollPass, notes: 'Ingin ikut kelas percobaan hari Sabtu.', status: EnrollmentStatus.BARU }),
+      enrollRepo.create({ branchId: branch.id, studentName: `Rafi Aditya ${code === 'pusat' ? '' : branch.city}`.trim(), studentBirthDate: '2012-09-03', studentSchool: 'SMP Contoh', program: 'Teens', parentName: 'Bapak Hendra', parentPhone: '0813-2222-3333', parentEmail: `hendra.${code}@contoh.id`, passwordHash: enrollPass, status: EnrollmentStatus.DIHUBUNGI, adminNote: 'Sudah ditelepon, menunggu jadwal tes penempatan.' }),
+    ]);
 
     const blogTitles = [
       [PostType.BLOG, `5 Cara Melatih Mental Berbicara Bahasa Inggris`, 'Rasa takut salah adalah penghalang terbesar. Berikut lima kebiasaan kecil yang membangun keberanian berbicara.'],
@@ -219,6 +329,7 @@ async function main() {
           slug: `${slugify(title)}-${code}`,
           content: `${excerpt}\n\nDi Mental English, kami percaya bahwa kemampuan bahasa tumbuh bersama mental yang kuat dan fokus yang terlatih. Setiap pertemuan dirancang agar pelajar berani mencoba, berani salah, dan terus memperbaiki diri.\n\n## Apa yang kami lakukan\n\n- Latihan speaking singkat setiap pertemuan\n- Permainan kosakata untuk melatih fokus\n- Refleksi bersama di akhir kelas\n\nSampai jumpa di kelas berikutnya!`,
           coverUrl: covers[ti],
+          media: ti === 1 ? [{ url: '/landing/team.jpg', type: 'image' as const }, { url: '/landing/welcome.jpg', type: 'image' as const }] : [],
           videoUrl: null, // isi dengan URL YouTube vlog Anda
           branchId: branch.id,
           authorId: admin.id,
@@ -252,6 +363,7 @@ async function main() {
   console.log('\nSeed selesai. Password semua akun demo:', DEFAULT_PASSWORD);
   console.log('  Super admin : superadmin@mentalenglish.id');
   console.log('  Admin       : admin.pusat@mentalenglish.id   (login pilih cabang "Mental English Pusat")');
+  console.log('  Keuangan    : keuangan.pusat@mentalenglish.id (login pilih cabang "Mental English Pusat")');
   console.log('  Pengajar    : teacher1.pusat@mentalenglish.id (login pilih cabang "Mental English Pusat")');
   console.log('  Orang tua   : ortu.aisyah@mentalenglish.id');
   console.log('  Pelajar     : aisyah@mentalenglish.id');

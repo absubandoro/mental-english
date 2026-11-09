@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarCheck, CreditCard, GraduationCap, Newspaper, Palette, School, Users, UsersRound } from 'lucide-react';
+import { CalendarCheck, CreditCard, GraduationCap, Newspaper, Palette, ReceiptText, School, UserPlus, Users, UsersRound } from 'lucide-react';
 import Link from 'next/link';
 import { useBranchScope } from '@/components/admin';
 import { Badge, PageHeader, Spinner, Stat } from '@/components/ui';
@@ -19,6 +19,8 @@ interface Stats {
   mading: number;
   unpaid: number;
   sessions: number;
+  pendingPayments: number;
+  newEnrollments: number;
 }
 
 export default function AdminHome() {
@@ -28,6 +30,8 @@ export default function AdminHome() {
   const { data: sessions } = useApi<Paged<ClassSessionSummary>>('/admin/sessions', { branchId, limit: 8 });
 
   const cards = data && [
+    { label: 'Perlu verifikasi bayar', value: data.pendingPayments, icon: ReceiptText, href: '/admin/pembayaran' },
+    { label: 'Pendaftaran baru', value: data.newEnrollments, icon: UserPlus, href: '/admin/pendaftaran' },
     { label: 'Pelajar', value: data.students, icon: GraduationCap, href: '/admin/pelajar' },
     { label: 'Orang tua', value: data.parents, icon: UsersRound, href: '/admin/orang-tua' },
     { label: 'Pengajar', value: data.teachers, icon: Users, href: '/admin/pengajar' },

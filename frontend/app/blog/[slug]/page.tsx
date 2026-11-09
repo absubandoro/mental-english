@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PublicShell } from '@/components/PublicShell';
 import { CoverArt } from '@/components/CoverArt';
+import { MediaGallery } from '@/components/Media';
 import { RichText } from '@/components/RichText';
 import { Avatar } from '@/components/ui';
 import { formatDate, youtubeId } from '@/lib/format';
@@ -51,6 +52,8 @@ export default async function BlogDetail({ params }: { params: Params }) {
               allowFullScreen
             />
           </div>
+        ) : post.videoUrl ? (
+          <video src={post.videoUrl} controls playsInline preload="metadata" poster={post.coverUrl ?? undefined} className="mt-8 aspect-video w-full rounded-2xl bg-black ring-1 ring-white/10" />
         ) : post.coverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={post.coverUrl} alt="" className="mt-8 aspect-video w-full rounded-2xl object-cover ring-1 ring-white/10" />
@@ -61,6 +64,12 @@ export default async function BlogDetail({ params }: { params: Params }) {
         <div className="mt-8">
           <RichText text={post.content} />
         </div>
+        {post.media?.length > 0 && (
+          <section className="mt-10">
+            <h2 className="mb-3 font-display text-xl font-bold text-white">Galeri</h2>
+            <MediaGallery items={post.media} />
+          </section>
+        )}
       </article>
     </PublicShell>
   );

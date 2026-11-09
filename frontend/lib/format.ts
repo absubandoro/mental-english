@@ -1,4 +1,4 @@
-import type { AttendanceStatus, PaymentStatus, Role, SessionType } from './types';
+import type { AttendanceStatus, CalendarEventType, EnrollmentStatus, PaymentStatus, Role, SessionType } from './types';
 
 export const ROLE_LABEL: Record<Role, string> = {
   SUPER_ADMIN: 'Super Admin',
@@ -6,6 +6,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   TEACHER: 'Pengajar',
   STUDENT: 'Pelajar',
   PARENT: 'Orang Tua',
+  FINANCE: 'Keuangan',
 };
 
 export const ROLE_HOME: Record<Role, string> = {
@@ -14,7 +15,44 @@ export const ROLE_HOME: Record<Role, string> = {
   TEACHER: '/pengajar',
   STUDENT: '/pelajar',
   PARENT: '/orang-tua',
+  FINANCE: '/keuangan',
 };
+
+export const DAY_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+export const EVENT_TYPE_LABEL: Record<CalendarEventType, string> = {
+  LIBUR: 'Libur',
+  ACARA: 'Acara',
+  UJIAN: 'Ujian',
+  LAINNYA: 'Lainnya',
+};
+
+export const ENROLL_STATUS_LABEL: Record<EnrollmentStatus, string> = {
+  BARU: 'Baru',
+  DIHUBUNGI: 'Dihubungi',
+  DITERIMA: 'Diterima',
+  DITOLAK: 'Ditolak',
+};
+
+export function gradeFor(score: number | null | undefined) {
+  if (score == null) return null;
+  if (score >= 90) return 'A';
+  if (score >= 80) return 'B+';
+  if (score >= 70) return 'B';
+  if (score >= 60) return 'C';
+  return 'D';
+}
+
+/** YYYY-MM-DD dari Date lokal */
+export function isoDate(d: Date) {
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+export function addDays(date: string, n: number) {
+  const d = new Date(date + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return isoDate(d);
+}
 
 export const SESSION_TYPE_LABEL: Record<SessionType, string> = {
   BELAJAR: 'Belajar',

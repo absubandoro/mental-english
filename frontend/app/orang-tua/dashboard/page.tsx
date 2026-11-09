@@ -7,14 +7,15 @@ import { Badge, Empty, PageHeader, Spinner, Stat } from '@/components/ui';
 import { ATT_TONE } from '@/lib/tones';
 import { ATTENDANCE_LABEL, formatDate, SESSION_TYPE_LABEL } from '@/lib/format';
 import { useApi } from '@/lib/hooks';
-import type { AttendanceStatus, SessionType } from '@/lib/types';
+import type { AttendanceStatus, MediaItem, SessionType } from '@/lib/types';
+import { MediaGallery } from '@/components/Media';
 
 interface Dashboard {
   attendance: {
     total: number;
     counts: Record<AttendanceStatus, number>;
     ratio: number | null;
-    recent: { id: string; date: string; type: SessionType; topic: string; className: string; status: AttendanceStatus; note: string | null; teacherReport: string | null; teacher: string }[];
+    recent: { id: string; date: string; type: SessionType; topic: string; className: string; status: AttendanceStatus; note: string | null; teacherReport: string | null; teacher: string; media?: MediaItem[] }[];
   };
   exams: {
     count: number;
@@ -139,7 +140,10 @@ function Content({ childId }: { childId: string }) {
                     <td data-label="Status" className="px-3 py-3">
                       <Badge tone={ATT_TONE[r.status]}>{ATTENDANCE_LABEL[r.status]}</Badge>
                     </td>
-                    <td data-label="Report pengajar" data-block className="px-6 py-3 text-slate-400">{r.teacherReport ?? '-'}</td>
+                    <td data-label="Report pengajar" data-block className="px-6 py-3 text-slate-400">
+                      <div>{r.teacherReport ?? '-'}</div>
+                      {r.media && r.media.length > 0 && <MediaGallery items={r.media} className="mt-2 max-w-sm !grid-cols-3" />}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -15,10 +15,11 @@ const TITLES: Partial<Record<Role, { title: string; desc: string }>> = {
   PARENT: { title: 'User Orang Tua', desc: 'Kelola akun orang tua pelajar.' },
   TEACHER: { title: 'Pengajar', desc: 'Kelola akun pengajar cabang. Pengajar hanya bisa login ke cabangnya.' },
   ADMIN: { title: 'Admin Cabang', desc: 'Kelola akun admin untuk setiap cabang.' },
+  FINANCE: { title: 'User Keuangan', desc: 'Akun bagian keuangan: kelola tagihan & verifikasi pembayaran. Hanya bisa login ke cabangnya.' },
 };
 
-type Form = Record<'name' | 'email' | 'password' | 'phone' | 'address' | 'birthDate' | 'school' | 'level' | 'parentId' | 'branchId', string> & { isActive: boolean };
-const EMPTY: Form = { name: '', email: '', password: '', phone: '', address: '', birthDate: '', school: '', level: '', parentId: '', branchId: '', isActive: true };
+type Form = Record<'name' | 'email' | 'password' | 'phone' | 'address' | 'birthDate' | 'school' | 'level' | 'parentId' | 'branchId' | 'monthlyFee', string> & { isActive: boolean };
+const EMPTY: Form = { name: '', email: '', password: '', phone: '', address: '', birthDate: '', school: '', level: '', parentId: '', branchId: '', monthlyFee: '', isActive: true };
 
 export function UsersManager({ role }: { role: Role }) {
   const scope = useBranchScope();
@@ -52,6 +53,7 @@ export function UsersManager({ role }: { role: Role }) {
             level: u.level ?? '',
             parentId: u.parentId ?? '',
             branchId: u.branchId ?? '',
+            monthlyFee: u.monthlyFee != null ? String(u.monthlyFee) : '',
             isActive: u.isActive,
           }
         : { ...EMPTY, branchId: scope.branchId ?? '' },
@@ -72,7 +74,14 @@ export function UsersManager({ role }: { role: Role }) {
       ...(form.password ? { password: form.password } : {}),
       ...(scope.isSuper && form.branchId ? { branchId: form.branchId } : {}),
     };
-    if (role === 'STUDENT') Object.assign(body, { birthDate: form.birthDate || undefined, school: form.school || undefined, level: form.level || undefined, parentId: form.parentId || null });
+    if (role === 'STUDENT')
+      Object.assign(body, {
+        birthDate: form.birthDate || undefined,
+        school: form.school || undefined,
+        level: form.level || undefined,
+        parentId: form.parentId || null,
+        monthlyFee: form.monthlyFee === '' ? null : Number(form.monthlyFee),
+      });
     try {
       if (editing) await api(`/admin/users/${editing.id}`, { method: 'PATCH', body });
       else await api('/admin/users', { method: 'POST', body: { ...body, role } });
@@ -197,6 +206,9 @@ export function UsersManager({ role }: { role: Role }) {
                 </Field>
                 <Field label="Level">
                   <input className="input" placeholder="Kids / Teens / Adult" value={form.level} onChange={set('level')} />
+                </Field>
+                <Field label="SPP khusus (Rp)" hint="Kosongkan untuk memakai nominal SPP cabang">
+                  <input className="input" type="number" min={0} step={1000} placeholder="Ikut nominal cabang" value={form.monthlyFee} onChange={set('monthlyFee')} />
                 </Field>
               </>
             )}
