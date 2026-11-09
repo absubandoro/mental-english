@@ -2,22 +2,26 @@
  * Seed data demo Mental English.
  *   npm run seed            -> isi data jika database masih kosong
  *   npm run seed -- --reset -> hapus semua data lalu isi ulang
+ *   npm run seed -- --kosong -> hapus semua data, sisakan cabang Pusat + Super Admin (butuh SEED_PASSWORD)
+ * Di server (Docker): docker compose -f docker-compose.prod.yml exec api node dist/seed.js [--reset|--kosong]
  */
 import 'reflect-metadata';
 import * as bcrypt from 'bcryptjs';
 import { config } from 'dotenv';
 import { DataSource } from 'typeorm';
 import {
-  Attendance, AttendanceStatus, Branch, ClassRoom, ClassSession, ENTITIES, ExamResult, Mading, Notification, NotificationRecipient,
+  Attendance, AttendanceStatus, Branch, ClassRoom, ClassSession, ExamResult, Mading, Notification, NotificationRecipient,
   NotificationTarget, Payment, PaymentStatus, Post, PostType, Role, SessionType, User,
 } from './entities';
 import { slugify } from './common/util';
+import { dataSourceOptions } from './data-source';
 
 config();
 
-const ds = new DataSource({ type: 'postgres', url: process.env.DATABASE_URL, entities: ENTITIES, synchronize: true });
+const ds = new DataSource(dataSourceOptions);
 
-const DEFAULT_PASSWORD = 'password123';
+// Password akun demo. Di server, set SEED_PASSWORD agar tidak memakai password bawaan.
+const DEFAULT_PASSWORD = process.env.SEED_PASSWORD || 'password123';
 
 const MADING_SAMPLES = [
   {
@@ -56,12 +60,32 @@ function monthOffset(n: number) {
 
 async function main() {
   await ds.initialize();
+  // Pastikan skema ada: migrasi (production) atau sinkronisasi (development)
+  if (!dataSourceOptions.synchronize) await ds.runMigrations();
   const reset = process.argv.includes('--reset');
   const users = ds.getRepository(User);
 
-  if (reset) {
+  const truncateAll = async () => {
     const tables = ds.entityMetadatas.map((m) => `"${m.tableName}"`).join(', ');
     await ds.query(`TRUNCATE ${tables}, "class_students", "class_teachers" RESTART IDENTITY CASCADE`);
+  };
+
+  // --kosong : hapus SEMUA data, sisakan cabang Pusat + 1 akun Super Admin (untuk mulai pakai sungguhan)
+  if (process.argv.includes('--kosong')) {
+    if (!process.env.SEED_PASSWORD || process.env.SEED_PASSWORD.length < 8) {
+      throw new Error('Set SEED_PASSWORD (minimal 8 karakter) untuk password Super Admin.');
+    }
+    await truncateAll();
+    const branchRepo = ds.getRepository(Branch);
+    const pusat = { name: 'Mental English Pusat', city: 'Bekasi', address: 'Jatimurni, Pondok Melati, Kota Bekasi, Jawa Barat' };
+    await branchRepo.save(branchRepo.create({ ...pusat, slug: slugify(pusat.name), mapQuery: pusat.address }));
+    await users.save(users.create({ name: 'Super Admin', email: 'superadmin@mentalenglish.id', role: Role.SUPER_ADMIN, password: await bcrypt.hash(process.env.SEED_PASSWORD, 10) }));
+    console.log('Semua data dihapus. Tersisa cabang "Mental English Pusat" dan Super Admin: superadmin@mentalenglish.id (password = SEED_PASSWORD).');
+    return ds.destroy();
+  }
+
+  if (reset) {
+    await truncateAll();
     console.log('Database dikosongkan.');
   } else if (await users.count()) {
     console.log('Data sudah ada. Jalankan "npm run seed -- --reset" untuk mengisi ulang.');

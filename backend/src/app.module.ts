@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ENTITIES } from './entities';
+import { dataSourceOptions } from './data-source';
 import { AuthModule } from './auth/auth.module';
 import { BranchesModule } from './branches/branches';
 import { ClassesModule } from './classes/classes';
@@ -22,10 +22,11 @@ import { UsersModule } from './users/users';
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (c: ConfigService) => ({
-        type: 'postgres',
+        ...dataSourceOptions,
         url: c.get<string>('DATABASE_URL'),
-        entities: ENTITIES,
         synchronize: c.get<string>('DB_SYNC') === 'true',
+        // Production: jalankan migrasi yang belum diterapkan setiap kali API start
+        migrationsRun: c.get<string>('DB_SYNC') !== 'true',
       }),
     }),
     ServeStaticModule.forRoot({ rootPath: UPLOAD_DIR, serveRoot: '/uploads' }),

@@ -8,8 +8,12 @@ Website kursus bahasa Inggris **Mental English** — Next.js (frontend), NestJS 
 mental-english/
 ├── backend/    NestJS 11 + TypeORM + PostgreSQL (port 4000)
 ├── frontend/   Next.js 15 (App Router) + Tailwind CSS 4 (port 3000)
-└── docker-compose.yml   PostgreSQL 16
+├── deploy/     Caddyfile (HTTPS) & skrip backup
+├── docker-compose.yml        PostgreSQL 16 untuk development
+└── docker-compose.prod.yml   Production: db + api + web + Caddy
 ```
+
+**Deploy ke server (VPS):** ikuti [`DEPLOY.md`](DEPLOY.md).
 
 ## Menjalankan secara lokal
 
@@ -21,7 +25,7 @@ docker compose up -d db
 cd backend
 cp .env.example .env          # sesuaikan DATABASE_URL & JWT_SECRET
 npm install
-npm run seed                  # isi data demo (opsional)
+npm run seed                  # buat struktur database (migrasi) + isi data demo
 npm run start:dev             # http://localhost:4000
 
 # 3. Web
@@ -33,7 +37,7 @@ npm run dev                   # http://localhost:3000
 
 ### Akun demo (setelah `npm run seed`)
 
-Password semua akun: `password123`
+Password semua akun: `password123` (di server: nilai `SEED_PASSWORD`)
 
 | Role | Email | Cabang saat login |
 |---|---|---|
@@ -78,10 +82,10 @@ CRUD Blog/Vlog, CRUD user anak, CRUD user orang tua, CRUD pengajar, CRUD kelas (
 - Favicon, apple icon, dan Open Graph / Twitter image dibuat dari logo: `frontend/app/{favicon.ico,icon.png,apple-icon.png,opengraph-image.png,twitter-image.png}`.
 - Set `NEXT_PUBLIC_SITE_URL` ke domain produksi agar URL `og:image` benar.
 
-## Catatan produksi
-- `DB_SYNC=true` membuat skema otomatis — cocok untuk development. Untuk produksi, set `DB_SYNC=false` dan gunakan migrasi TypeORM.
+## Catatan teknis
+- Struktur database dikelola lewat **migrasi** (`backend/src/migrations`) dan dijalankan otomatis saat API start. Setelah mengubah entity: `npm run migration:generate src/migrations/NamaPerubahan`.
 - Ganti `JWT_SECRET` dengan nilai acak yang panjang.
-- File unggahan disimpan di `backend/uploads/`; gunakan volume persisten atau object storage di produksi.
+- File unggahan disimpan di `backend/uploads/` (di Docker: volume `uploads`, ikut di-backup oleh `deploy/backup.sh`).
 - Notifikasi bersifat in-app (badge di sidebar orang tua, diperbarui tiap 30 detik).
 
 ## Dokumentasi

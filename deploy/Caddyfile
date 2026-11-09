@@ -1,0 +1,27 @@
+# Reverse proxy + HTTPS otomatis (Let's Encrypt) untuk domain di variabel DOMAIN.
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Batas unggahan gambar 5 MB (+ ruang untuk header form)
+	request_body {
+		max_size 6MB
+	}
+
+	# API NestJS: https://domain/api/... -> api:4000/...
+	# (termasuk file unggahan: /api/uploads/...)
+	handle_path /api/* {
+		reverse_proxy api:4000
+	}
+
+	# Website Next.js
+	handle {
+		reverse_proxy web:3000
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
