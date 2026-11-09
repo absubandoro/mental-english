@@ -1,120 +1,174 @@
-# Deploy Mental English ke VPS
+# Deploy Mental English ke VPS (PM2 + Nginx)
 
-Panduan memasang website Mental English di VPS dengan Docker. Semua bagian berjalan di satu server:
+Panduan memasang website Mental English di VPS **tanpa Docker**. Semua berjalan langsung di server:
 
 ```
-Internet ──► Caddy (port 80/443, HTTPS otomatis Let's Encrypt)
-               ├── https://DOMAIN/         ► web  (Next.js)
-               └── https://DOMAIN/api/...  ► api  (NestJS) ──► db (PostgreSQL)
+Internet ──► Nginx (port 80/443, HTTPS gratis dari Let's Encrypt via Certbot)
+               ├── https://DOMAIN/         ► PM2: mental-english-web  (Next.js, 127.0.0.1:3000)
+               └── https://DOMAIN/api/...  ► PM2: mental-english-api  (NestJS, 127.0.0.1:4000)
+                                                     └──► PostgreSQL (lokal)
 ```
 
-File yang dipakai: `docker-compose.prod.yml`, `deploy/Caddyfile`, `.env` (dari `.env.production.example`), `backend/Dockerfile`, `frontend/Dockerfile`.
+File yang dipakai: `ecosystem.config.js` (PM2), `deploy/nginx.conf`, `backend/.env.production.example`, `frontend/.env.production.example`, `deploy/backup.sh`, `deploy/update.sh`.
+
+Contoh di panduan ini memakai domain **`mentalenglish.id`** dan folder **`/var/www/mental-english`** — ganti sesuai milik Anda.
 
 ---
 
 ## 1. Siapkan VPS & domain
 
 **Spesifikasi minimal:** Ubuntu 22.04 / 24.04, **2 GB RAM**, 2 vCPU, 25 GB disk.
-(Dengan 1 GB RAM, proses build bisa gagal kehabisan memori — tambahkan swap, lihat bagian Masalah umum.)
+(Dengan 1 GB RAM, proses build bisa gagal kehabisan memori — tambahkan swap, lihat *Masalah umum*.)
 
-**DNS domain** (di panel tempat beli domain), buat record:
+**DNS domain** (di panel tempat beli domain):
 
 | Tipe | Nama | Nilai |
 |---|---|---|
 | A | `@` | IP publik VPS |
 
-Tunggu sampai `ping namadomain.id` menunjukkan IP VPS (biasanya beberapa menit, bisa sampai 24 jam).
+Tunggu sampai `ping mentalenglish.id` menunjukkan IP VPS.
 
-## 2. Install Docker & firewall
+## 2. Install software
 
 Masuk ke VPS lewat SSH, lalu:
 
 ```bash
-curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker $USER    # lalu logout & login lagi
+sudo apt update && sudo apt upgrade -y
 
+# Node.js 22
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs git
+
+# PostgreSQL, Nginx, Certbot
+sudo apt install -y postgresql nginx certbot python3-certbot-nginx
+
+# PM2
+sudo npm install -g pm2
+
+# Firewall
 sudo ufw allow OpenSSH
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw allow 443/udp
+sudo ufw allow 'Nginx Full'
 sudo ufw enable
 ```
 
-## 3. Ambil kode
+## 3. Buat database
 
 ```bash
-sudo mkdir -p /opt/mental-english && sudo chown $USER /opt/mental-english
-git clone https://github.com/absubandoro/mental-english.git /opt/mental-english
-cd /opt/mental-english
+openssl rand -hex 24          # salin hasilnya sebagai password database
+sudo -u postgres psql
 ```
 
-> Jika repo **private**, GitHub akan meminta login. Gunakan *Personal Access Token* (Settings → Developer settings → Personal access tokens) sebagai password, atau pasang *Deploy key* SSH di repo.
+Di dalam konsol `psql` (ganti `PASSWORD_DB` dengan hasil di atas):
 
-## 4. Isi konfigurasi `.env`
+```sql
+CREATE ROLE mental LOGIN PASSWORD 'PASSWORD_DB';
+CREATE DATABASE mental_english OWNER mental;
+\q
+```
+
+## 4. Ambil kode
 
 ```bash
-cp .env.production.example .env
-openssl rand -hex 24   # salin hasilnya untuk POSTGRES_PASSWORD
-openssl rand -hex 32   # salin hasilnya untuk JWT_SECRET
-nano .env
+sudo mkdir -p /var/www/mental-english && sudo chown $USER /var/www/mental-english
+git clone -b main https://github.com/absubandoro/mental-english.git /var/www/mental-english
+cd /var/www/mental-english
+```
+
+> Jika repo **private**, GitHub meminta login: gunakan *Personal Access Token* (Settings → Developer settings → Personal access tokens) sebagai password, atau pasang *Deploy key* SSH di repo.
+
+## 5. Isi konfigurasi
+
+**API** — `backend/.env`:
+
+```bash
+cp backend/.env.production.example backend/.env
+openssl rand -hex 32          # salin hasilnya untuk JWT_SECRET
+nano backend/.env
 ```
 
 | Variabel | Isi |
 |---|---|
-| `DOMAIN` | domain tanpa `https://`, mis. `mentalenglish.id` |
-| `POSTGRES_PASSWORD` | hasil `openssl rand -hex 24` (huruf & angka saja) |
+| `DATABASE_URL` | ganti `GANTI_PASSWORD_DB` dengan password database (langkah 3) |
 | `JWT_SECRET` | hasil `openssl rand -hex 32` |
+| `CORS_ORIGIN` | `https://domain-anda` |
+| `PUBLIC_URL` | `https://domain-anda/api` |
 | `SEED_PASSWORD` | password untuk akun demo / Super Admin — **jangan** `password123` |
 
-## 5. Jalankan
+**Website** — `frontend/.env.production.local`:
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+cp frontend/.env.production.example frontend/.env.production.local
+nano frontend/.env.production.local      # ganti mentalenglish.id dengan domain Anda
 ```
 
-Build pertama memakan waktu sekitar 5–10 menit. Cek status:
+## 6. Build
 
 ```bash
-docker compose -f docker-compose.prod.yml ps
-docker compose -f docker-compose.prod.yml logs -f caddy   # lihat proses sertifikat HTTPS
+cd /var/www/mental-english/backend  && npm ci && npm run build
+cd /var/www/mental-english/frontend && npm ci && npm run build
+cd /var/www/mental-english
 ```
 
-Struktur database dibuat otomatis lewat **migrasi** setiap kali API start.
-
-## 6. Isi data
+## 7. Isi data
 
 **Data demo** (cabang Pusat + 2 cabang contoh, akun pelajar/orang tua/pengajar/admin, blog, mading, pembayaran):
 
 ```bash
-docker compose -f docker-compose.prod.yml exec api node dist/seed.js
+cd backend && node dist/seed.js && cd ..
 ```
 
-Semua akun demo memakai password `SEED_PASSWORD`. Daftar akun ada di README (bagian *Akun demo*).
+Perintah ini juga membuat struktur database (migrasi). Semua akun demo memakai password `SEED_PASSWORD`; daftar akun ada di README (*Akun demo*).
 
-**Saat siap dipakai sungguhan** — hapus semua data demo, sisakan cabang Pusat (Jatimurni, Bekasi) dan satu Super Admin:
+## 8. Jalankan dengan PM2
 
 ```bash
-docker compose -f docker-compose.prod.yml exec api node dist/seed.js --kosong
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup          # jalankan perintah "sudo env PATH=..." yang ditampilkan, agar otomatis jalan saat VPS restart
+pm2 install pm2-logrotate   # log tidak memenuhi disk
 ```
 
-Lalu login sebagai `superadmin@mentalenglish.id` (password = `SEED_PASSWORD`), ganti password lewat **Profil Saya**, dan isi data asli lewat menu admin.
+Cek: `pm2 status` → `mental-english-api` dan `mental-english-web` harus **online**.
 
-> ⚠️ `--kosong` dan `--reset` menghapus **seluruh** data. Lakukan backup dulu.
+## 9. Nginx & HTTPS
 
-Buka `https://DOMAIN` — selesai.
+```bash
+sudo cp deploy/nginx.conf /etc/nginx/sites-available/mental-english
+sudo nano /etc/nginx/sites-available/mental-english     # ganti mentalenglish.id dengan domain Anda
+sudo ln -s /etc/nginx/sites-available/mental-english /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
+
+# Sertifikat HTTPS gratis (otomatis diperpanjang)
+sudo certbot --nginx -d mentalenglish.id
+```
+
+Buka `https://mentalenglish.id` — selesai. 🎉
 
 ---
+
+## Mulai dipakai sungguhan (hapus data demo)
+
+Hapus semua data demo, sisakan cabang Pusat (Jatimurni, Bekasi) dan satu Super Admin:
+
+```bash
+cd /var/www/mental-english
+./deploy/backup.sh
+cd backend && node dist/seed.js --kosong
+```
+
+Login sebagai `superadmin@mentalenglish.id` (password = `SEED_PASSWORD`), ganti password lewat **Profil Saya**, lalu isi data asli lewat menu admin.
+
+> ⚠️ `--kosong` dan `--reset` menghapus **seluruh** data. Selalu backup dulu.
 
 ## Update ke versi terbaru
 
 ```bash
-cd /opt/mental-english
-./deploy/backup.sh                                   # backup dulu
-git pull
-docker compose -f docker-compose.prod.yml up -d --build
+cd /var/www/mental-english
+./deploy/update.sh
 ```
 
-Migrasi database baru (jika ada) berjalan otomatis saat API start.
+Skrip ini: backup → `git pull` → build API & website → `pm2 reload` (tanpa downtime). Migrasi database baru berjalan otomatis saat API start.
 
 ## Backup & restore
 
@@ -124,45 +178,47 @@ Backup database + foto unggahan ke folder `backups/` (backup lebih dari 14 hari 
 ./deploy/backup.sh
 ```
 
-Backup otomatis tiap hari jam 02.00 — jalankan `crontab -e` lalu tambahkan:
+Backup otomatis tiap hari jam 02.00 — jalankan `crontab -e`, lalu tambahkan:
 
 ```
-0 2 * * * cd /opt/mental-english && ./deploy/backup.sh >> backups/backup.log 2>&1
+0 2 * * * cd /var/www/mental-english && ./deploy/backup.sh >> backups/backup.log 2>&1
 ```
 
-Sebaiknya salin folder `backups/` ke tempat lain secara berkala (Google Drive, komputer lokal, dll).
+Salin folder `backups/` ke tempat lain secara berkala (Google Drive, komputer lokal, dll).
 
-**Restore database:**
+**Restore database** (`DATABASE_URL` sama dengan di `backend/.env`):
 
 ```bash
-zcat backups/db-YYYYMMDD-HHMMSS.sql.gz | docker compose -f docker-compose.prod.yml exec -T db psql -U mental -d mental_english
+zcat backups/db-YYYYMMDD-HHMMSS.sql.gz | psql "postgres://mental:PASSWORD_DB@127.0.0.1:5432/mental_english"
 ```
 
 **Restore foto unggahan:**
 
 ```bash
-docker compose -f docker-compose.prod.yml exec -T api tar -xzf - -C /app < backups/uploads-YYYYMMDD-HHMMSS.tar.gz
+tar -xzf backups/uploads-YYYYMMDD-HHMMSS.tar.gz -C backend
 ```
 
 ## Perintah berguna
 
 ```bash
-docker compose -f docker-compose.prod.yml logs -f api        # log API
-docker compose -f docker-compose.prod.yml logs -f web        # log website
-docker compose -f docker-compose.prod.yml restart api web    # restart aplikasi
-docker compose -f docker-compose.prod.yml down               # matikan (data tetap aman di volume)
-docker compose -f docker-compose.prod.yml exec db psql -U mental -d mental_english   # konsol database
+pm2 status                         # status aplikasi
+pm2 logs mental-english-api        # log API
+pm2 logs mental-english-web        # log website
+pm2 restart all                    # restart semua
+pm2 monit                          # pantau CPU & memori
+sudo tail -f /var/log/nginx/error.log
 ```
 
 ## Masalah umum
 
 | Gejala | Penyebab & solusi |
 |---|---|
-| HTTPS gagal / browser "tidak aman" | DNS belum mengarah ke IP VPS, atau port 80/443 tertutup. Cek `ping DOMAIN` dan `sudo ufw status`, lalu `docker compose -f docker-compose.prod.yml restart caddy`. |
+| `502 Bad Gateway` | Aplikasi belum jalan / crash. Cek `pm2 status` dan `pm2 logs`. |
+| Certbot gagal | DNS belum mengarah ke IP VPS, atau port 80 tertutup. Cek `ping DOMAIN` dan `sudo ufw status`. |
 | Build berhenti / `Killed` | RAM kurang. Tambah swap 2 GB: `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && echo '/swapfile none swap sw 0 0' \| sudo tee -a /etc/fstab` |
-| `isi DOMAIN di .env` / `isi JWT_SECRET di .env` | File `.env` belum dibuat atau variabelnya kosong (langkah 4). |
-| Ganti domain | Ubah `DOMAIN` di `.env`, lalu `docker compose -f docker-compose.prod.yml up -d --build` (website perlu di-build ulang). |
-| Login gagal semua akun | Data belum diisi — jalankan langkah 6. |
+| Login gagal, muncul error koneksi | `NEXT_PUBLIC_API_URL` / `CORS_ORIGIN` tidak sesuai domain. Perbaiki, lalu build ulang website (`cd frontend && npm run build`) dan `pm2 reload ecosystem.config.js`. |
+| Ganti domain | Ubah domain di `backend/.env`, `frontend/.env.production.local`, dan konfigurasi Nginx; build ulang website; `pm2 reload ecosystem.config.js --update-env`; jalankan `sudo certbot --nginx -d DOMAIN_BARU`. |
+| Login gagal semua akun | Data belum diisi — jalankan langkah 7. |
 
 ## Catatan untuk developer: perubahan struktur database
 
@@ -173,4 +229,4 @@ cd backend
 npm run migration:generate src/migrations/NamaPerubahan
 ```
 
-Commit file migrasinya, lalu deploy seperti biasa — migrasi berjalan otomatis di server.
+Commit file migrasinya, lalu jalankan `./deploy/update.sh` di server — migrasi berjalan otomatis.

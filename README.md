@@ -8,17 +8,17 @@ Website kursus bahasa Inggris **Mental English** — Next.js (frontend), NestJS 
 mental-english/
 ├── backend/    NestJS 11 + TypeORM + PostgreSQL (port 4000)
 ├── frontend/   Next.js 15 (App Router) + Tailwind CSS 4 (port 3000)
-├── deploy/     Caddyfile (HTTPS) & skrip backup
-├── docker-compose.yml        PostgreSQL 16 untuk development
-└── docker-compose.prod.yml   Production: db + api + web + Caddy
+├── deploy/     Konfigurasi Nginx, skrip backup & update
+├── ecosystem.config.js       PM2 (production)
+└── docker-compose.yml        PostgreSQL untuk development (opsional)
 ```
 
-**Deploy ke server (VPS):** ikuti [`DEPLOY.md`](DEPLOY.md).
+**Deploy ke server (VPS, PM2 + Nginx):** ikuti [`DEPLOY.md`](DEPLOY.md).
 
 ## Menjalankan secara lokal
 
 ```bash
-# 1. Database
+# 1. Database PostgreSQL (pakai PostgreSQL lokal, atau Docker jika ada)
 docker compose up -d db
 
 # 2. API
@@ -85,7 +85,7 @@ CRUD Blog/Vlog, CRUD user anak, CRUD user orang tua, CRUD pengajar, CRUD kelas (
 ## Catatan teknis
 - Struktur database dikelola lewat **migrasi** (`backend/src/migrations`) dan dijalankan otomatis saat API start. Setelah mengubah entity: `npm run migration:generate src/migrations/NamaPerubahan`.
 - Ganti `JWT_SECRET` dengan nilai acak yang panjang.
-- File unggahan disimpan di `backend/uploads/` (di Docker: volume `uploads`, ikut di-backup oleh `deploy/backup.sh`).
+- File unggahan disimpan di `backend/uploads/` dan ikut di-backup oleh `deploy/backup.sh`.
 - Notifikasi bersifat in-app (badge di sidebar orang tua, diperbarui tiap 30 detik).
 
 ## Dokumentasi

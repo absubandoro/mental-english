@@ -3,7 +3,7 @@
  *   npm run seed            -> isi data jika database masih kosong
  *   npm run seed -- --reset -> hapus semua data lalu isi ulang
  *   npm run seed -- --kosong -> hapus semua data, sisakan cabang Pusat + Super Admin (butuh SEED_PASSWORD)
- * Di server (Docker): docker compose -f docker-compose.prod.yml exec api node dist/seed.js [--reset|--kosong]
+ * Di server: cd backend && node dist/seed.js [--reset|--kosong]
  */
 import 'reflect-metadata';
 import * as bcrypt from 'bcryptjs';
