@@ -1,11 +1,11 @@
-import { Body, Controller, Get, Injectable, Module, NotFoundException, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Injectable, Module, NotFoundException, Patch, Req } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Type } from 'class-transformer';
 import { IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength, ValidateIf, ValidateNested } from 'class-validator';
 import { Repository } from 'typeorm';
 import { Organization, Role } from '../entities';
 import { Auth, AuthUser, CurrentUser } from '../common/auth';
-import { CurrentOrg, TenantService } from '../common/tenant';
+import { orgOf, PLATFORM_NAME, TenantRequest, TenantService } from '../common/tenant';
 import { clean } from '../common/util';
 
 class PhotosDto {
@@ -48,6 +48,25 @@ export function publicOrg(o: Organization) {
   };
 }
 
+/** Identitas platform Nofosys (website produk & panel pengelola) */
+export function platformBrand() {
+  return {
+    id: '',
+    slug: '',
+    platform: true,
+    name: PLATFORM_NAME,
+    tagline: 'Sistem kursus & bimbel dengan merek Anda sendiri',
+    description: `${PLATFORM_NAME}: website, aplikasi HP, absensi, rapor, dan tagihan otomatis untuk kursus & bimbel — tampil dengan nama, logo, dan domain lembaga Anda.`,
+    logoUrl: null,
+    brandColor: process.env.PLATFORM_COLOR || '#7c5cff',
+    photos: {},
+    whatsapp: process.env.PLATFORM_WHATSAPP || null,
+    email: process.env.PLATFORM_EMAIL || null,
+    instagram: null,
+    website: null,
+  };
+}
+
 @Injectable()
 export class OrganizationsService {
   constructor(
@@ -72,9 +91,10 @@ export class OrganizationsService {
 export class OrganizationsController {
   constructor(private svc: OrganizationsService) {}
 
-  /** Publik: identitas lembaga dari domain yang dibuka (nama, logo, warna, foto, kontak) */
-  @Get() current(@CurrentOrg() org: Organization) {
-    return publicOrg(org);
+  /** Publik: identitas lembaga dari domain yang dibuka (nama, logo, warna, foto, kontak). Di domain platform: identitas Nofosys. */
+  @Get() current(@Req() req: TenantRequest) {
+    if (req.platform) return platformBrand();
+    return publicOrg(orgOf(req));
   }
 
   @Patch() @Auth(Role.SUPER_ADMIN) update(@CurrentUser() u: AuthUser, @Body() dto: UpdateOrganizationDto) {

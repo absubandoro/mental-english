@@ -20,6 +20,7 @@ import { StatsModule } from './stats/stats';
 import { UPLOAD_DIR, UploadsModule } from './uploads/uploads';
 import { UsersModule } from './users/users';
 import { OrganizationsModule } from './organizations/organizations';
+import { PlatformModule } from './platform/platform';
 import { TenantMiddleware, TenantModule } from './common/tenant';
 
 @Module({
@@ -39,6 +40,7 @@ import { TenantMiddleware, TenantModule } from './common/tenant';
     ServeStaticModule.forRoot({ rootPath: UPLOAD_DIR, serveRoot: '/uploads' }),
     TenantModule,
     OrganizationsModule,
+    PlatformModule,
     AuthModule,
     BranchesModule,
     UsersModule,

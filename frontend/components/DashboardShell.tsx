@@ -106,6 +106,11 @@ function isActive(href: string, pathname: string) {
 
 export function DashboardShell({ area, roles, children }: { area: Area; roles: Role[]; children: React.ReactNode }) {
   const { user, ready } = useRequireRole(roles);
+  const orgCheck = useOrg();
+  const router0 = useRouter();
+  useEffect(() => {
+    if (orgCheck.platform) router0.replace('/platform');
+  }, [orgCheck.platform, router0]);
   const { logout, activeBranchId, setActiveBranchId } = useAuth();
   const org = useOrg();
   const pathname = usePathname();

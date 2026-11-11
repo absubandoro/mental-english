@@ -1,5 +1,5 @@
 /**
- * Kelola organisasi (klien) dari terminal server.
+ * Kelola lembaga (klien) Nofosys dari terminal server. Hal yang sama bisa dilakukan lewat panel /platform.
  *
  *   node dist/org.js daftar
  *   node dist/org.js tambah --slug kursus-budi --nama "Kursus Budi" --email superadmin@kursusbudi.com \
@@ -7,6 +7,8 @@
  *   node dist/org.js domain-tambah --slug kursus-budi --domain belajar.kursusbudi.com
  *   node dist/org.js domain-hapus  --domain belajar.kursusbudi.com
  *   node dist/org.js nonaktif --slug kursus-budi      (website & login ditutup)
+ *   node dist/org.js pengelola --email anda@nofosys.id [--nama "Nama"] [--password ...]
+ *        (buat akun pengelola platform / reset password-nya — untuk panel /platform)
  *   node dist/org.js aktif    --slug kursus-budi
  *
  * Saat pengembangan: npx ts-node src/org.ts <perintah> ...
@@ -14,11 +16,10 @@
  */
 import 'reflect-metadata';
 import * as bcrypt from 'bcryptjs';
-import { randomBytes } from 'crypto';
 import { DataSource } from 'typeorm';
-import { Branch, Organization, OrganizationDomain, Role, User } from './entities';
-import { slugify } from './common/util';
-import { normalizeHost } from './common/tenant';
+import { Branch, Organization, OrganizationDomain, PlatformAdmin, User } from './entities';
+import { normalizeHost, orgUrls } from './common/tenant';
+import { addDomain, createOrganization, randomPassword } from './organizations/provision';
 import { dataSourceOptions } from './data-source';
 
 const ds = new DataSource(dataSourceOptions);
@@ -39,16 +40,6 @@ async function findOrg(slug: string) {
   return org;
 }
 
-async function addDomain(org: Organization, raw: string) {
-  const domain = normalizeHost(raw);
-  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) throw new Error(`Domain tidak valid: ${raw}`);
-  const repo = ds.getRepository(OrganizationDomain);
-  const other = await repo.findOneBy({ domain });
-  if (other && other.organizationId !== org.id) throw new Error(`Domain ${domain} sudah dipakai organisasi lain`);
-  if (!other) await repo.save(repo.create({ domain, organizationId: org.id }));
-  console.log(`Domain ${domain} → ${org.name}`);
-}
-
 async function main() {
   await ds.initialize();
   if (!dataSourceOptions.synchronize) await ds.runMigrations();
@@ -57,46 +48,53 @@ async function main() {
   switch (cmd) {
     case 'daftar': {
       const list = await orgs.find({ relations: { domains: true }, order: { createdAt: 'ASC' } });
-      const platform = process.env.PLATFORM_DOMAIN;
       for (const o of list) {
         const [b, u] = await Promise.all([
           ds.getRepository(Branch).countBy({ organizationId: o.id }),
           ds.getRepository(User).countBy({ organizationId: o.id }),
         ]);
-        const hosts = [platform ? `${o.slug}.${platform}` : `${o.slug}.localhost`, ...o.domains.map((d) => d.domain)];
+        const hosts = orgUrls(o.slug, o.domains.map((d) => d.domain));
         console.log(`${o.isActive ? '●' : '○'} ${o.slug.padEnd(22)} ${o.name.padEnd(26)} ${b} cabang, ${u} akun  ${hosts.join(', ')}`);
       }
       break;
     }
     case 'tambah': {
-      const slug = slugify(need('slug'));
-      if (await orgs.existsBy({ slug })) throw new Error(`Slug "${slug}" sudah dipakai`);
-      const name = need('nama');
-      const email = need('email').toLowerCase();
       const color = arg('warna');
       if (color && !/^#[0-9a-fA-F]{6}$/.test(color)) throw new Error('Warna harus format hex, mis. #16a34a');
-      const password = arg('password') || randomBytes(6).toString('base64url');
-      const org = await orgs.save(orgs.create({ slug, name, brandColor: color || '#3d8ccf', email }));
-      const branchName = arg('cabang') || `${name} Pusat`;
-      await ds.getRepository(Branch).save(
-        ds.getRepository(Branch).create({ organizationId: org.id, name: branchName, slug: slugify(branchName), city: arg('kota') || null }),
-      );
-      const users = ds.getRepository(User);
-      await users.save(
-        users.create({ organizationId: org.id, name: 'Super Admin', email, role: Role.SUPER_ADMIN, password: await bcrypt.hash(password, 10) }),
-      );
-      if (arg('domain')) await addDomain(org, arg('domain')!);
-      const platform = process.env.PLATFORM_DOMAIN;
-      console.log(`\nOrganisasi "${name}" dibuat.`);
-      console.log(`  Alamat      : ${platform ? `https://${slug}.${platform}` : `http://${slug}.localhost:3000`}`);
-      console.log(`  Super Admin : ${email}`);
-      console.log(`  Password    : ${password}   (minta klien menggantinya lewat Profil Saya)`);
+      const r = await createOrganization(ds, {
+        slug: need('slug'),
+        name: need('nama'),
+        email: need('email'),
+        password: arg('password'),
+        branchName: arg('cabang'),
+        city: arg('kota'),
+        brandColor: color,
+        domain: arg('domain'),
+      });
+      console.log(`\nLembaga "${r.org.name}" dibuat.`);
+      console.log(`  Alamat      : ${orgUrls(r.org.slug, arg('domain') ? [arg('domain')!] : []).join('  ')}`);
+      console.log(`  Super Admin : ${r.admin.email}`);
+      console.log(`  Password    : ${r.password}   (minta klien menggantinya lewat Profil Saya)`);
       console.log('  Lanjutkan   : login sebagai Super Admin → menu Identitas Lembaga (logo, warna, foto, kontak).');
       break;
     }
-    case 'domain-tambah':
-      await addDomain(await findOrg(need('slug')), need('domain'));
+    case 'pengelola': {
+      // Akun pengelola platform (panel https://PLATFORM_DOMAIN/platform)
+      const email = need('email').toLowerCase();
+      const password = arg('password') || randomPassword();
+      const repo = ds.getRepository(PlatformAdmin);
+      const existing = await repo.findOneBy({ email });
+      if (existing) await repo.update(existing.id, { password: await bcrypt.hash(password, 10), isActive: true });
+      else await repo.save(repo.create({ email, name: arg('nama') || 'Pengelola', password: await bcrypt.hash(password, 10) }));
+      console.log(`Pengelola platform ${existing ? 'diperbarui' : 'dibuat'}: ${email}  password: ${password}`);
       break;
+    }
+    case 'domain-tambah': {
+      const org = await findOrg(need('slug'));
+      const d = await addDomain(ds, org.id, need('domain'));
+      console.log(`Domain ${d.domain} → ${org.name}`);
+      break;
+    }
     case 'domain-hapus': {
       const r = await ds.getRepository(OrganizationDomain).delete({ domain: normalizeHost(need('domain')) });
       console.log(r.affected ? 'Domain dihapus.' : 'Domain tidak ditemukan.');
@@ -110,7 +108,7 @@ async function main() {
       break;
     }
     default:
-      console.log('Perintah: daftar | tambah | domain-tambah | domain-hapus | aktif | nonaktif  (lihat keterangan di src/org.ts)');
+      console.log('Perintah: daftar | tambah | domain-tambah | domain-hapus | aktif | nonaktif | pengelola  (lihat keterangan di src/org.ts)');
   }
   await ds.destroy();
 }

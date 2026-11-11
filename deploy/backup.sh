@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Backup database + foto unggahan Mental English ke folder backups/.
+# Backup database + foto unggahan platform Nofosys ke folder backups/.
 # Pemakaian (dari folder project):  ./deploy/backup.sh
-# Cron harian jam 02.00:  0 2 * * * cd /var/www/mental-english && ./deploy/backup.sh >> backups/backup.log 2>&1
+# Cron harian jam 02.00:  0 2 * * * cd /var/www/nofosys && ./deploy/backup.sh >> backups/backup.log 2>&1
 set -euo pipefail
 cd "$(dirname "$0")/.."
 STAMP=$(date +%Y%m%d-%H%M%S)

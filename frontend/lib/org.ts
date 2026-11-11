@@ -1,6 +1,8 @@
 /** Identitas lembaga (organisasi) dari domain yang dibuka — dipakai di server & browser */
 export interface Org {
   id: string;
+  /** true = domain platform Nofosys (website produk & panel pengelola), bukan lembaga */
+  platform?: boolean;
   slug: string;
   name: string;
   tagline: string | null;

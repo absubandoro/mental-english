@@ -27,6 +27,8 @@ export class Organization {
   @Column({ type: 'varchar', nullable: true }) email: string | null;
   @Column({ type: 'varchar', nullable: true }) instagram: string | null;
   @Column({ type: 'varchar', nullable: true }) website: string | null;
+  /** Catatan internal pengelola platform (tidak tampil ke lembaga) */
+  @Column({ type: 'text', nullable: true, select: false }) notes: string | null;
   /** Nonaktif = website & login ditutup (mis. langganan berakhir) */
   @Column({ default: true }) isActive: boolean;
   @OneToMany(() => OrganizationDomain, (d) => d.organization) domains: OrganizationDomain[];

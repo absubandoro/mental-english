@@ -19,7 +19,25 @@ export function requestHost(req: Request): string {
   return normalizeHost((req.headers['x-tenant-host'] as string) || (req.headers['x-forwarded-host'] as string) || req.headers.host);
 }
 
-export type TenantRequest = Request & { org?: Organization | null };
+export type TenantRequest = Request & { org?: Organization | null; platform?: boolean };
+
+export const PLATFORM_NAME = process.env.PLATFORM_NAME || 'Nofosys';
+
+/**
+ * Domain platform Nofosys sendiri (website produk + panel pengelola), bukan milik lembaga mana pun:
+ * PLATFORM_DOMAIN, www.PLATFORM_DOMAIN, platform.PLATFORM_DOMAIN, dan platform.localhost (lokal).
+ */
+export function isPlatformHost(host: string): boolean {
+  const pd = normalizeHost(process.env.PLATFORM_DOMAIN);
+  if (host === 'platform.localhost') return true;
+  return !!pd && (host === pd || host === `www.${pd}` || host === `platform.${pd}`);
+}
+
+/** Alamat website lembaga: subdomain platform (atau <slug>.localhost saat lokal) + domain kustom */
+export function orgUrls(slug: string, domains: string[] = []): string[] {
+  const pd = normalizeHost(process.env.PLATFORM_DOMAIN);
+  return [pd ? `https://${slug}.${pd}` : `http://${slug}.localhost:3000`, ...domains.map((d) => (pd ? `https://${d}` : `http://${d}`))];
+}
 
 /**
  * Menentukan organisasi (klien) dari domain:
@@ -75,7 +93,9 @@ export class TenantMiddleware implements NestMiddleware {
   constructor(private tenants: TenantService) {}
   async use(req: TenantRequest, _res: Response, next: NextFunction) {
     try {
-      req.org = await this.tenants.resolve(requestHost(req));
+      const host = requestHost(req);
+      req.platform = isPlatformHost(host);
+      req.org = req.platform ? null : await this.tenants.resolve(host);
       next();
     } catch (e) {
       next(e);

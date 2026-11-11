@@ -1,8 +1,9 @@
-# Mental English
+# Nofosys
 
-> Build Your Mental Focus!
+Platform sistem kursus & bimbel **white-label**: satu aplikasi untuk banyak lembaga, masing-masing tampil dengan nama, logo, warna, dan domainnya sendiri.
+Klien pertama: **Mental English** — *Build Your Mental Focus!*
 
-Website kursus bahasa Inggris **Mental English** — Next.js (frontend), NestJS (API), PostgreSQL. Tema dark mode biru & navy mengikuti logo.
+Next.js (frontend), NestJS (API), PostgreSQL.
 
 ```
 mental-english/
@@ -48,8 +49,12 @@ Password semua akun: `password123` (di server: nilai `SEED_PASSWORD`)
 | Orang tua | ortu.aisyah@mentalenglish.id | — |
 | Pelajar | aisyah@mentalenglish.id | — |
 
-**Lembaga contoh kedua — Bimbel Cerdas** (buka `http://bimbel-cerdas.localhost:3000`, data terpisah penuh dari Mental English):
-`superadmin@bimbelcerdas.id`, `admin@bimbelcerdas.id` (cabang Bimbel Cerdas Depok), `pengajar@bimbelcerdas.id`, `ortu@bimbelcerdas.id`, `raka@bimbelcerdas.id`.
+**Klien contoh kedua — Kursus Contoh** (buka `http://kursus-contoh.localhost:3000`, data terpisah penuh dari Mental English):
+`superadmin@kursuscontoh.id`, `admin@kursuscontoh.id` (cabang Kursus Contoh Depok), `pengajar@kursuscontoh.id`, `ortu@kursuscontoh.id`, `raka@kursuscontoh.id`.
+
+**Panel pengelola Nofosys** — buka `http://platform.localhost:3000/platform`, login `owner@nofosys.id` (password sama). Website produk Nofosys: `http://platform.localhost:3000`.
+
+Mental English juga bisa dibuka di `http://mental-english.localhost:3000` (`http://localhost:3000` diarahkan ke Mental English lewat `DEFAULT_ORG`).
 
 Akun lain mengikuti pola `admin.bandung@…`, `teacher2.surabaya@…`, dst. Cabang **Pusat** beralamat di Jatimurni, Pondok Melati, Kota Bekasi. Cabang Bandung & Surabaya masih **contoh**, dan nomor telepon semua cabang juga contoh — ganti lewat menu **Cabang** (super admin).
 
@@ -88,19 +93,21 @@ Peran baru, terkunci per cabang: **verifikasi bukti pembayaran** (terima / tolak
 
 ## Multi-lembaga (satu aplikasi untuk banyak klien)
 
-Hierarki data: **Organisasi (lembaga/klien) → Cabang → User, kelas, tagihan, blog, mading, rapor, dst.** Mental English adalah organisasi pertama.
+Hierarki data: **Platform Nofosys → Organisasi (lembaga/klien) → Cabang → User, kelas, tagihan, blog, mading, rapor, dst.** Mental English adalah organisasi pertama.
 
-- **Organisasi dikenali dari domain yang dibuka**, berurutan: `<slug>.PLATFORM_DOMAIN` (mis. `budi.produkanda.id`) → `<slug>.localhost` (lokal) → domain kustom terdaftar (mis. `belajar.kursusbudi.com`) → `DEFAULT_ORG` (cadangan, mis. untuk `localhost`).
+- **Domain platform** (`PLATFORM_DOMAIN`, `www.`, `platform.`; lokal: `platform.localhost`) menampilkan website produk Nofosys dan **panel pengelola** `/platform`: daftar lembaga & statistik, buat lembaga baru (website + Super Admin langsung aktif), domain kustom, aktif/nonaktif, reset password Super Admin lembaga, catatan internal, dan akun pengelola. Akun pengelola terpisah dari akun lembaga (tabel `platform_admins`, token khusus yang hanya berlaku di domain platform).
+- **Organisasi dikenali dari domain yang dibuka**, berurutan: `<slug>.PLATFORM_DOMAIN` (mis. `mental-english.nofosys.id`) → `<slug>.localhost` (lokal) → domain kustom terdaftar (mis. `mentalenglish.id`) → `DEFAULT_ORG` (cadangan, mis. untuk `localhost`).
   Website mengirim header `X-Tenant-Host`; di server, Nginx meneruskan `Host` asli.
 - **Login hanya mencari akun di organisasi domain tersebut**; email yang sama boleh terdaftar di dua lembaga. Token login ditolak bila dipakai di domain lembaga lain.
 - **Semua data dibatasi per organisasi di sisi server**: Super Admin hanya melihat cabang milik organisasinya; endpoint publik (cabang, blog, mading, pendaftaran) hanya menampilkan data lembaga dari domain itu. File unggahan disimpan di `uploads/<organizationId>/`.
 - **White-label**: nama, tagline, deskripsi, logo, warna merek, foto landing, dan kontak diatur Super Admin di menu **Identitas Lembaga** (`/admin/lembaga`). Favicon, ikon aplikasi HP, manifest, judul halaman, preview link (`/opengraph-image`), dan kop rapor otomatis mengikuti.
-- **Kelola organisasi** dari terminal server (lihat DEPLOY.md):
+- **Kelola organisasi** lewat panel, atau dari terminal server (lihat DEPLOY.md):
   ```bash
   node dist/org.js daftar
   node dist/org.js tambah --slug kursus-budi --nama "Kursus Budi" --email superadmin@kursusbudi.com [--domain belajar.kursusbudi.com] [--warna "#16a34a"]
   node dist/org.js domain-tambah --slug kursus-budi --domain belajar.kursusbudi.com
   node dist/org.js nonaktif --slug kursus-budi
+  node dist/org.js pengelola --email anda@nofosys.id   # akun pengelola platform / reset password
   ```
   Lokal: `npm run org -- daftar`.
 

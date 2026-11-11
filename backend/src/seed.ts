@@ -1,5 +1,5 @@
 /**
- * Seed data demo Mental English.
+ * Seed data demo platform Nofosys: klien Mental English (+ klien contoh kedua) dan akun pengelola platform.
  *   npm run seed            -> isi data jika database masih kosong
  *   npm run seed -- --reset -> hapus semua data lalu isi ulang
  *   npm run seed -- --kosong -> hapus semua data, sisakan cabang Pusat + Super Admin (butuh SEED_PASSWORD)
@@ -11,7 +11,7 @@ import { config } from 'dotenv';
 import { DataSource } from 'typeorm';
 import {
   Attendance, AttendanceStatus, Branch, CalendarEvent, CalendarEventType, ClassRoom, ClassSchedule, ClassSession, Enrollment, EnrollmentStatus,
-  ExamResult, Mading, Notification, NotificationRecipient, NotificationTarget, Organization, Payment, PaymentSource, PaymentStatus, Post, PostType,
+  ExamResult, Mading, Notification, NotificationRecipient, NotificationTarget, Organization, Payment, PlatformAdmin, PaymentSource, PaymentStatus, Post, PostType,
   ProgressReport, ReportStatus, Role, SessionType, User,
 } from './entities';
 import { addDays, dayOfWeek, slugify, todayLocal } from './common/util';
@@ -86,24 +86,31 @@ async function ensureOrg(data: Partial<Organization>) {
   return (await repo.findOneBy({ slug: data.slug })) ?? repo.save(repo.create(data));
 }
 
-/** Lembaga contoh kedua — untuk mencoba pemisahan data antar-klien (buka http://bimbel-cerdas.localhost:3000) */
+/** Akun pengelola platform Nofosys (panel http://platform.localhost:3000/platform) */
+const PLATFORM_EMAIL = process.env.SEED_PLATFORM_EMAIL || 'owner@nofosys.id';
+async function seedPlatformAdmin(passwordHash: string) {
+  const repo = ds.getRepository(PlatformAdmin);
+  if (!(await repo.existsBy({ email: PLATFORM_EMAIL }))) await repo.save(repo.create({ name: 'Pengelola Nofosys', email: PLATFORM_EMAIL, password: passwordHash }));
+}
+
+/** Klien contoh kedua — untuk mencoba pemisahan data antar-lembaga (buka http://kursus-contoh.localhost:3000) */
 async function seedSecondOrg(password: string) {
   const org = await ensureOrg({
-    slug: 'bimbel-cerdas',
-    name: 'Bimbel Cerdas',
+    slug: 'kursus-contoh',
+    name: 'Kursus Contoh',
     tagline: 'Belajar Seru, Nilai Melaju!',
-    description: 'Lembaga contoh kedua di platform yang sama. Datanya terpisah penuh dari Mental English.',
+    description: 'Klien contoh kedua di platform Nofosys. Datanya terpisah penuh dari Mental English.',
     logoUrl: null,
     brandColor: '#16a34a',
     // Tanpa foto: landing memakai gradasi warna merek sampai foto diunggah lewat Identitas Lembaga
     photos: {},
-    email: 'halo@bimbelcerdas.id',
+    email: 'halo@kursuscontoh.id',
   });
   const branch = await ds.getRepository(Branch).save(
     ds.getRepository(Branch).create({
       organizationId: org.id,
-      name: 'Bimbel Cerdas Depok',
-      slug: 'bimbel-cerdas-depok',
+      name: 'Kursus Contoh Depok',
+      slug: 'kursus-contoh-depok',
       city: 'Depok',
       address: 'Jl. Contoh Margonda No. 10, Depok',
       mapQuery: 'Margonda, Depok',
@@ -113,20 +120,20 @@ async function seedSecondOrg(password: string) {
   );
   const users = ds.getRepository(User);
   const mk = (d: Partial<User>) => users.save(users.create({ password, organizationId: org.id, ...d }));
-  await mk({ name: 'Super Admin', email: 'superadmin@bimbelcerdas.id', role: Role.SUPER_ADMIN });
-  const admin = await mk({ name: 'Admin Depok', email: 'admin@bimbelcerdas.id', role: Role.ADMIN, branchId: branch.id });
-  await mk({ name: 'Kak Dina', email: 'pengajar@bimbelcerdas.id', role: Role.TEACHER, branchId: branch.id });
-  const parent = await mk({ name: 'Ibu Sari', email: 'ortu@bimbelcerdas.id', role: Role.PARENT, branchId: branch.id, phone: '0812-0000-0100' });
-  await mk({ name: 'Raka', email: 'raka@bimbelcerdas.id', role: Role.STUDENT, branchId: branch.id, parentId: parent.id, level: 'SD Kelas 5' });
+  await mk({ name: 'Super Admin', email: 'superadmin@kursuscontoh.id', role: Role.SUPER_ADMIN });
+  const admin = await mk({ name: 'Admin Depok', email: 'admin@kursuscontoh.id', role: Role.ADMIN, branchId: branch.id });
+  await mk({ name: 'Kak Dina', email: 'pengajar@kursuscontoh.id', role: Role.TEACHER, branchId: branch.id });
+  const parent = await mk({ name: 'Ibu Sari', email: 'ortu@kursuscontoh.id', role: Role.PARENT, branchId: branch.id, phone: '0812-0000-0100' });
+  await mk({ name: 'Raka', email: 'raka@kursuscontoh.id', role: Role.STUDENT, branchId: branch.id, parentId: parent.id, level: 'SD Kelas 5' });
   await ds.getRepository(Post).save(
     ds.getRepository(Post).create({
       branchId: branch.id,
       authorId: admin.id,
       type: PostType.BLOG,
-      title: 'Selamat Datang di Bimbel Cerdas',
-      slug: 'selamat-datang-di-bimbel-cerdas',
-      excerpt: 'Artikel ini hanya muncul di website Bimbel Cerdas, bukan di Mental English.',
-      content: 'Bimbel Cerdas memakai platform yang sama dengan Mental English, tetapi data, tampilan, dan akunnya terpisah penuh.',
+      title: 'Selamat Datang di Kursus Contoh',
+      slug: 'selamat-datang-di-kursus-contoh',
+      excerpt: 'Artikel ini hanya muncul di website Kursus Contoh, bukan di Mental English.',
+      content: 'Kursus Contoh memakai platform Nofosys yang sama dengan Mental English, tetapi data, tampilan, dan akunnya terpisah penuh.',
     }),
   );
 }
@@ -162,7 +169,9 @@ async function main() {
         password: await bcrypt.hash(process.env.SEED_PASSWORD, 10),
       }),
     );
-    console.log('Semua data dihapus. Tersisa cabang "Mental English Pusat" dan Super Admin: superadmin@mentalenglish.id (password = SEED_PASSWORD).');
+    await seedPlatformAdmin(await bcrypt.hash(process.env.SEED_PASSWORD, 10));
+    console.log('Semua data dihapus. Tersisa lembaga Mental English (cabang Pusat + Super Admin superadmin@mentalenglish.id)');
+    console.log(`dan pengelola platform ${PLATFORM_EMAIL}. Password keduanya = SEED_PASSWORD.`);
     return ds.destroy();
   }
 
@@ -434,6 +443,7 @@ async function main() {
   }
 
   await seedSecondOrg(password);
+  await seedPlatformAdmin(password);
 
   console.log('\nSeed selesai. Password semua akun demo:', DEFAULT_PASSWORD);
   console.log('  Super admin : superadmin@mentalenglish.id');
@@ -442,7 +452,8 @@ async function main() {
   console.log('  Pengajar    : teacher1.pusat@mentalenglish.id (login pilih cabang "Mental English Pusat")');
   console.log('  Orang tua   : ortu.aisyah@mentalenglish.id');
   console.log('  Pelajar     : aisyah@mentalenglish.id');
-  console.log('Lembaga contoh kedua "Bimbel Cerdas" (http://bimbel-cerdas.localhost:3000): superadmin@bimbelcerdas.id, admin@bimbelcerdas.id, ortu@bimbelcerdas.id');
+  console.log('Klien contoh "Kursus Contoh" (http://kursus-contoh.localhost:3000): superadmin@kursuscontoh.id, admin@kursuscontoh.id, ortu@kursuscontoh.id');
+  console.log(`Panel pengelola Nofosys (http://platform.localhost:3000/platform): ${PLATFORM_EMAIL}`);
   await ds.destroy();
 }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { CheckCircle2, GraduationCap, UserRound } from 'lucide-react';
+import { LembagaOnly } from '@/components/LembagaOnly';
 import { BrandMark } from '@/components/Logo';
 import { useOrg } from '@/components/OrgProvider';
 import Link from 'next/link';
@@ -39,6 +40,7 @@ export default function DaftarSiswa() {
 
   return (
     <main className="bg-mesh min-h-dvh px-4 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-10 sm:py-10">
+      <LembagaOnly />
       <div className="mx-auto max-w-2xl">
         <Link href="/" className="mb-6 inline-flex items-center gap-3">
           <BrandMark size={44} />

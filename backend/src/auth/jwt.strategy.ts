@@ -22,7 +22,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(req: TenantRequest, payload: { sub: string }): Promise<AuthUser> {
+  async validate(req: TenantRequest, payload: { sub: string; kind?: string }): Promise<AuthUser> {
+    if (payload.kind) throw new UnauthorizedException(); // token pengelola platform bukan untuk portal lembaga
     // Selalu ambil dari DB agar perubahan cabang/role/nonaktif langsung berlaku
     const user = await this.users.findOne({
       where: { id: payload.sub },

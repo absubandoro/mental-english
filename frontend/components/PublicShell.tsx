@@ -1,5 +1,6 @@
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { LembagaOnly } from './LembagaOnly';
 import { Logo } from './Logo';
 import { PublicTabBar } from './PublicTabBar';
 
@@ -11,6 +12,7 @@ export function PublicShell({ children, back = '/', backLabel = 'Beranda' }: { c
   const isRoot = back === '/';
   return (
     <div className="bg-mesh min-h-dvh">
+      <LembagaOnly />
       <div className="mx-auto max-w-6xl px-4 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-10 sm:px-6 sm:pt-6 sm:pb-16">
         <div className="mb-6 flex items-center justify-between gap-4 sm:mb-8">
           <Link
