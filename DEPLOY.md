@@ -192,6 +192,8 @@ Semua dilakukan di **panel pengelola** `https://nofosys.id/platform`:
 - **Lembaga baru** — isi nama, slug, dan email pemilik. Website langsung aktif di `https://<slug>.nofosys.id` beserta akun Super Admin dan password awal (salin & kirim ke klien). Klien login, mengganti password, lalu mengisi **Identitas Lembaga** (logo, warna, foto, kontak).
 - **Nonaktifkan / aktifkan** — menutup website & login lembaga (mis. langganan berakhir) tanpa menghapus data.
 - **Reset password** Super Admin lembaga, tambah Super Admin, ubah nama/slug, catatan internal.
+- **Langganan & tagihan sistem** (di detail lembaga) — nama paket, biaya tetap/bulan, biaya per pelajar aktif, **tanggal jatuh tempo** tiap bulan, dan berapa hari sebelumnya tagihan terbit. Tagihan terbit otomatis setiap hari pukul 06.10 WIB (atau tombol *Terbitkan sekarang*), muncul di menu **Langganan Sistem** milik Super Admin lembaga, dengan pengingat H-3 dan saat lewat jatuh tempo.
+- **Tagihan Langganan** — verifikasi bukti transfer dari lembaga (terima / tolak dengan alasan), tandai lunas manual, batalkan, dan atur **rekening pembayaran** Nofosys.
 - **Pengelola & Akun** — tambah rekan pengelola platform, ganti password sendiri.
 
 Perintah yang sama tersedia lewat terminal (mis. bila lupa password pengelola):

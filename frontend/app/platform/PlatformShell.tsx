@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, Inbox, LayoutDashboard, LogOut, ShieldCheck } from 'lucide-react';
+import { Building2, Inbox, LayoutDashboard, LogOut, ReceiptText, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BrandMark } from '@/components/Logo';
@@ -11,6 +11,7 @@ import { PlatformAuthProvider, usePlatformAuth } from '@/lib/platform';
 const NAV = [
   { href: '/platform', label: 'Ringkasan', icon: LayoutDashboard },
   { href: '/platform/lembaga', label: 'Lembaga', icon: Building2 },
+  { href: '/platform/tagihan', label: 'Tagihan Langganan', icon: ReceiptText },
   { href: '/platform/permintaan', label: 'Permintaan Demo', icon: Inbox },
   { href: '/platform/pengelola', label: 'Pengelola & Akun', icon: ShieldCheck },
 ];
@@ -87,7 +88,7 @@ function Frame({ children }: { children: React.ReactNode }) {
           <LogOut className="size-5" />
         </button>
       </header>
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-white/10 bg-ink-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-white/10 bg-ink-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
         {NAV.map((n) => (
           <Link key={n.href} href={n.href} className={`flex flex-col items-center gap-1 py-2.5 text-[11px] ${active(n.href) ? 'text-brand-300' : 'text-slate-400'}`}>
             <n.icon className="size-5" /> {n.label.split(' ')[0]}

@@ -12,6 +12,9 @@ import { Branch, LeadStatus, Organization, OrganizationDomain, PlatformAdmin, Pl
 import { isPlatformHost, normalizeHost, orgUrls, TenantRequest, TenantService } from '../common/tenant';
 import { clean } from '../common/util';
 import { addDomain, createOrganization, randomPassword, validSlug } from '../organizations/provision';
+import {
+  BillingSettingsDto, GenerateInvoiceDto, SubscriptionDto, SubscriptionsModule, SubscriptionsService, UpdateInvoiceDto, VerifyInvoiceDto,
+} from '../subscriptions/subscriptions';
 
 // ---------------------------------------------------------------- DTO
 
@@ -128,6 +131,7 @@ export class PlatformService {
     @InjectRepository(User) private users: Repository<User>,
     @InjectRepository(Branch) private branches: Repository<Branch>,
     @InjectRepository(PlatformLead) private leads: Repository<PlatformLead>,
+    private subs: SubscriptionsService,
   ) {}
 
   // ----- permintaan demo
@@ -233,7 +237,8 @@ export class PlatformService {
     const since = new Date(Date.now() - 30 * 86400_000);
     const newOrgs = await this.orgs.createQueryBuilder('o').where('o.createdAt >= :since', { since }).getCount();
     const newLeads = await this.leads.countBy({ status: LeadStatus.BARU });
-    return { orgs, active, inactive: orgs - active, branches, students, staff, parents, newOrgs, newLeads };
+    const invoices = await this.subs.counts();
+    return { orgs, active, inactive: orgs - active, branches, students, staff, parents, newOrgs, newLeads, invoices };
   }
 
   async list(q: { q?: string; status?: string }) {
@@ -274,6 +279,7 @@ export class PlatformService {
       /** Tujuan CNAME untuk domain kustom klien */
       cnameTarget: pd || null,
       ...counts.get(id)!,
+      estimate: await this.subs.estimate(o),
       branches,
       admins,
     };
@@ -374,7 +380,10 @@ export class PlatformAuthController {
 @Controller('platform')
 @UseGuards(PlatformGuard)
 export class PlatformController {
-  constructor(private svc: PlatformService) {}
+  constructor(
+    private svc: PlatformService,
+    private subs: SubscriptionsService,
+  ) {}
 
   @Get('auth/me') me(@Me() me: PlatformAdmin) {
     return { id: me.id, name: me.name, email: me.email };
@@ -422,6 +431,32 @@ export class PlatformController {
     return this.svc.updateLead(id, dto);
   }
 
+  // ----- langganan & tagihan sistem
+  @Patch('orgs/:id/subscription') subscription(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SubscriptionDto) {
+    return this.subs.updateSubscription(id, dto);
+  }
+  @Post('orgs/:id/invoices') generate(@Param('id', ParseUUIDPipe) id: string, @Body() dto: GenerateInvoiceDto) {
+    return this.subs.generateNow(id, dto.period);
+  }
+  @Get('invoices') invoices(@Query() q: { status?: string; orgId?: string }) {
+    return this.subs.list(q);
+  }
+  @Get('invoices/counts') invoiceCounts() {
+    return this.subs.counts();
+  }
+  @Post('invoices/:id/verify') verify(@Me() me: PlatformAdmin, @Param('id', ParseUUIDPipe) id: string, @Body() dto: VerifyInvoiceDto) {
+    return this.subs.verify(me.id, id, dto);
+  }
+  @Patch('invoices/:id') updateInvoice(@Me() me: PlatformAdmin, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateInvoiceDto) {
+    return this.subs.update(me.id, id, dto);
+  }
+  @Get('billing-settings') billingSettings() {
+    return this.subs.billingSettings();
+  }
+  @Patch('billing-settings') saveBillingSettings(@Body() dto: BillingSettingsDto) {
+    return this.subs.saveBillingSettings(dto);
+  }
+
   @Get('admins') admins() {
     return this.svc.listAdmins();
   }
@@ -440,6 +475,7 @@ export class PlatformController {
       inject: [ConfigService],
       useFactory: (c: ConfigService) => ({ secret: c.get<string>('JWT_SECRET') || 'dev-secret' }),
     }),
+    SubscriptionsModule,
   ],
   controllers: [PlatformAuthController, PlatformController],
   providers: [PlatformService, PlatformGuard],

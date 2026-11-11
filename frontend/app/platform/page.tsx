@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, Building2, GraduationCap, Inbox, Plus, School, UsersRound } from 'lucide-react';
+import { ArrowRight, Building2, GraduationCap, Inbox, Plus, ReceiptText, School, UsersRound } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Button, ErrorBox, PageHeader, Spinner, Stat } from '@/components/ui';
@@ -36,6 +36,19 @@ export default function PlatformHome() {
           <Stat label="Pelajar aktif" value={s.students} icon={<GraduationCap className="size-5" />} tone="from-emerald-500/15" />
           <Stat label="Orang tua · staf" value={`${s.parents} · ${s.staff}`} icon={<UsersRound className="size-5" />} tone="from-amber-500/15" />
         </div>
+      )}
+      {!!(s?.invoices.waiting || s?.invoices.overdue) && (
+        <Link
+          href="/platform/tagihan"
+          className="mt-4 flex items-center gap-3 rounded-2xl bg-amber-500/10 px-4 py-3.5 text-sm text-amber-100 ring-1 ring-amber-400/30 transition hover:bg-amber-500/15"
+        >
+          <ReceiptText className="size-5 text-amber-300" />
+          <span className="flex-1">
+            {!!s?.invoices.waiting && <b>{s.invoices.waiting} bukti pembayaran langganan perlu diverifikasi. </b>}
+            {!!s?.invoices.overdue && <>{s.invoices.overdue} tagihan lewat jatuh tempo.</>}
+          </span>
+          <ArrowRight className="size-4" />
+        </Link>
       )}
       {!!s?.newLeads && (
         <Link

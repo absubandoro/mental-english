@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  BadgeCheck, Bell, Building2, CalendarCheck, CalendarDays, ChartPie, ChevronRight, CreditCard, FileBadge, GraduationCap, Home, LayoutDashboard, LayoutGrid,
+  BadgeCheck, Bell, KeyRound, Building2, CalendarCheck, CalendarDays, ChartPie, ChevronRight, CreditCard, FileBadge, GraduationCap, Home, LayoutDashboard, LayoutGrid,
   LogOut, Megaphone, Newspaper, Palette, ReceiptText, School, ShieldCheck, User as UserIcon, UserPlus, Users, UsersRound, Wallet,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -70,6 +70,7 @@ const NAV: Record<Area, NavItem[]> = {
     { href: '/admin/notifikasi', label: 'Push Notifikasi', short: 'Notif', icon: Megaphone },
     { href: '/admin/kotak-masuk', label: 'Kotak Masuk', icon: Bell },
     { href: '/admin/lembaga', label: 'Identitas Lembaga', short: 'Lembaga', icon: BadgeCheck, roles: ['SUPER_ADMIN'] },
+    { href: '/admin/langganan', label: 'Langganan Sistem', short: 'Langganan', icon: KeyRound, roles: ['SUPER_ADMIN'] },
     { href: '/admin/cabang', label: 'Cabang', icon: Building2, roles: ['SUPER_ADMIN'] },
     { href: '/admin/admin-cabang', label: 'Admin Cabang', icon: ShieldCheck, roles: ['SUPER_ADMIN'] },
     { href: '/admin/profil', label: 'Profil Saya', short: 'Profil', icon: UserIcon },

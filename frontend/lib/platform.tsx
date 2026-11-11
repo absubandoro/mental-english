@@ -154,6 +154,14 @@ export interface OrgRow {
 
 export interface OrgDetail extends Omit<OrgRow, 'domains' | 'branches'> {
   tagline: string | null;
+  subscriptionEnabled: boolean;
+  planName: string | null;
+  baseFee: number;
+  perStudentFee: number;
+  dueDay: number;
+  invoiceLeadDays: number;
+  subscriptionStart: string | null;
+  estimate: { activeStudents: number; amount: number };
   notes: string | null;
   cnameTarget: string | null;
   domains: { id: string; domain: string; createdAt: string }[];
@@ -179,6 +187,7 @@ export interface Lead {
 
 export interface PlatformStats {
   newLeads: number;
+  invoices: { waiting: number; unpaid: number; overdue: number };
   orgs: number;
   active: number;
   inactive: number;

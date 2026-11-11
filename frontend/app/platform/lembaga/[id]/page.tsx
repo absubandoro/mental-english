@@ -8,10 +8,11 @@ import { formatDate } from '@/lib/format';
 import { papi, usePlatformApi, type OrgDetail } from '@/lib/platform';
 import { CopyButton, Credentials, OrgAvatar, StatusBadge } from '../../parts';
 import { slugify } from '../../slug';
+import { SubscriptionPanel } from '../../SubscriptionPanel';
 
 export default function PlatformOrgDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { data: o, loading, error, setData } = usePlatformApi<OrgDetail>(`/orgs/${id}`);
+  const { data: o, loading, error, setData, reload: reloadDetail } = usePlatformApi<OrgDetail>(`/orgs/${id}`);
   const [form, setForm] = useState({ name: '', slug: '', notes: '' });
   const [domain, setDomain] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
@@ -170,6 +171,8 @@ export default function PlatformOrgDetail({ params }: { params: Promise<{ id: st
           </Button>
           <p className="text-xs text-slate-500">Logo, warna, foto, dan kontak diatur sendiri oleh Super Admin lembaga di menu Identitas Lembaga.</p>
         </section>
+
+        <SubscriptionPanel org={o} onSaved={reloadDetail} />
 
         {/* Super admin */}
         <section className="card space-y-4 p-5 sm:p-6">

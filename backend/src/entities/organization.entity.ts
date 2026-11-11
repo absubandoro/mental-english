@@ -29,6 +29,20 @@ export class Organization {
   @Column({ type: 'varchar', nullable: true }) website: string | null;
   /** Catatan internal pengelola platform (tidak tampil ke lembaga) */
   @Column({ type: 'text', nullable: true, select: false }) notes: string | null;
+  // ---- Langganan Nofosys (tagihan sistem ke lembaga) ----
+  @Column({ default: false }) subscriptionEnabled: boolean;
+  @Column({ type: 'varchar', nullable: true }) planName: string | null;
+  /** Biaya tetap per bulan (Rp) */
+  @Column({ type: 'integer', default: 0 }) baseFee: number;
+  /** Biaya per pelajar aktif per bulan (Rp) */
+  @Column({ type: 'integer', default: 0 }) perStudentFee: number;
+  /** Tanggal jatuh tempo setiap bulan (1–28) */
+  @Column({ type: 'smallint', default: 10 }) dueDay: number;
+  /** Tagihan terbit N hari sebelum jatuh tempo */
+  @Column({ type: 'smallint', default: 7 }) invoiceLeadDays: number;
+  /** Periode pertama yang ditagih (YYYY-MM) */
+  @Column({ type: 'varchar', length: 7, nullable: true }) subscriptionStart: string | null;
+
   /** Nonaktif = website & login ditutup (mis. langganan berakhir) */
   @Column({ default: true }) isActive: boolean;
   @OneToMany(() => OrganizationDomain, (d) => d.organization) domains: OrganizationDomain[];

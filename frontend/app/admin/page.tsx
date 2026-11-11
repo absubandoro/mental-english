@@ -1,11 +1,12 @@
 'use client';
 
-import { CalendarCheck, CreditCard, GraduationCap, Newspaper, Palette, ReceiptText, School, UserPlus, Users, UsersRound } from 'lucide-react';
+import { CalendarCheck, CreditCard, GraduationCap, KeyRound, Newspaper, Palette, ReceiptText, School, UserPlus, Users, UsersRound } from 'lucide-react';
 import Link from 'next/link';
 import { useBranchScope } from '@/components/admin';
 import { Badge, PageHeader, Spinner, Stat } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { formatDate, SESSION_TYPE_LABEL } from '@/lib/format';
+import { formatDate, rupiah, SESSION_TYPE_LABEL } from '@/lib/format';
+import { periodName, type SubscriptionInfo } from '@/components/SystemInvoice';
 import { useApi } from '@/lib/hooks';
 import { SESSION_TONE } from '@/lib/tones';
 import type { ClassSessionSummary, Paged } from '@/lib/types';
@@ -28,6 +29,9 @@ export default function AdminHome() {
   const { branchId } = useBranchScope();
   const { data } = useApi<Stats>('/admin/stats', { branchId });
   const { data: sessions } = useApi<Paged<ClassSessionSummary>>('/admin/sessions', { branchId, limit: 8 });
+  // Tagihan langganan sistem (khusus Super Admin)
+  const { data: sub } = useApi<SubscriptionInfo>(user?.role === 'SUPER_ADMIN' ? '/admin/subscription' : null);
+  const due = sub?.invoices.find((i) => i.status === 'BELUM_BAYAR');
 
   const cards = data && [
     { label: 'Perlu verifikasi bayar', value: data.pendingPayments, icon: ReceiptText, href: '/admin/pembayaran' },
@@ -45,6 +49,21 @@ export default function AdminHome() {
   return (
     <>
       <PageHeader title={`Halo, ${user?.name.split(' ')[0]} 👋`} desc={user?.role === 'SUPER_ADMIN' ? 'Ringkasan seluruh cabang (atau cabang yang dipilih).' : `Ringkasan ${user?.branch?.name ?? 'cabang Anda'}.`} />
+      {due && sub && (
+        <Link
+          href="/admin/langganan"
+          className={`mb-5 flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm ring-1 transition ${
+            due.dueDate < sub.today ? 'bg-rose-500/10 text-rose-100 ring-rose-400/30 hover:bg-rose-500/15' : 'bg-amber-500/10 text-amber-100 ring-amber-400/30 hover:bg-amber-500/15'
+          }`}
+        >
+          <KeyRound className="size-5 shrink-0" />
+          <span className="flex-1">
+            <b>Tagihan langganan sistem {periodName(due.period)}</b> sebesar {rupiah(due.amount)} {due.dueDate < sub.today ? 'sudah lewat' : ''} jatuh tempo{' '}
+            {formatDate(due.dueDate)}.
+          </span>
+          <span className="shrink-0 font-semibold underline-offset-2 hover:underline">Bayar</span>
+        </Link>
+      )}
       {!cards ? (
         <Spinner />
       ) : (
