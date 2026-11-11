@@ -1,5 +1,7 @@
 import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
 import { Auth, AuthUser, CurrentUser } from '../common/auth';
+import { CurrentOrg } from '../common/tenant';
+import { Organization } from '../entities';
 import { LoginDto, UpdateProfileDto } from './auth.dto';
 import { AuthService } from './auth.service';
 
@@ -7,8 +9,8 @@ import { AuthService } from './auth.service';
 export class AuthController {
   constructor(private auth: AuthService) {}
 
-  @Post('login') login(@Body() dto: LoginDto) {
-    return this.auth.login(dto);
+  @Post('login') login(@CurrentOrg() org: Organization, @Body() dto: LoginDto) {
+    return this.auth.login(org, dto);
   }
 
   @Get('me') @Auth() me(@CurrentUser() user: AuthUser) {

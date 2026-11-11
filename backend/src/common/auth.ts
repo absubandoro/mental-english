@@ -10,6 +10,10 @@ export interface AuthUser {
   role: Role;
   branchId: string | null;
   name: string;
+  /** Organisasi (lembaga) pemilik akun */
+  organizationId: string;
+  /** Semua cabang milik organisasi (diisi untuk Super Admin) */
+  branchIds: string[];
 }
 
 export const ROLES_KEY = 'roles';
@@ -38,24 +42,38 @@ export const ADMIN_ROLES = [Role.SUPER_ADMIN, Role.ADMIN];
 /** Boleh mengelola tagihan & verifikasi pembayaran */
 export const FINANCE_ROLES = [Role.SUPER_ADMIN, Role.ADMIN, Role.FINANCE];
 
+/** UUID yang tidak pernah ada — agar filter IN (...) kosong tetap valid */
+const NONE = '00000000-0000-0000-0000-000000000000';
+
 /**
- * Menentukan cabang yang boleh diakses.
- * Super admin bebas memilih cabang (atau semua), admin/pengajar terkunci di cabangnya sendiri.
+ * Daftar cabang yang boleh diakses (selalu berupa daftar, dipakai dengan `IN (:...ids)`).
+ * Super admin: semua cabang di organisasinya, atau satu cabang yang dipilih (harus milik organisasinya).
+ * Admin/pengajar/keuangan: terkunci di cabangnya sendiri.
  */
-export function scopeBranch(user: AuthUser, requested?: string | null): string | undefined {
-  if (user.role === Role.SUPER_ADMIN) return requested || undefined;
+export function scopeBranch(user: AuthUser, requested?: string | null): string[] {
+  if (user.role === Role.SUPER_ADMIN) {
+    if (requested) {
+      if (!user.branchIds.includes(requested)) throw new ForbiddenException('Cabang tidak ditemukan');
+      return [requested];
+    }
+    return user.branchIds.length ? user.branchIds : [NONE];
+  }
+  if (!user.branchId) throw new ForbiddenException('Akun tidak terhubung ke cabang manapun');
+  return [user.branchId];
+}
+
+/** Wajib menghasilkan satu cabang (untuk membuat data). */
+export function requireBranch(user: AuthUser, requested?: string | null): string {
+  if (user.role === Role.SUPER_ADMIN) {
+    if (!requested) throw new ForbiddenException('Pilih cabang terlebih dahulu');
+    if (!user.branchIds.includes(requested)) throw new ForbiddenException('Cabang tidak ditemukan');
+    return requested;
+  }
   if (!user.branchId) throw new ForbiddenException('Akun tidak terhubung ke cabang manapun');
   return user.branchId;
 }
 
-/** Sama seperti scopeBranch, tapi wajib menghasilkan satu cabang (untuk membuat data). */
-export function requireBranch(user: AuthUser, requested?: string | null): string {
-  const b = scopeBranch(user, requested);
-  if (!b) throw new ForbiddenException('Pilih cabang terlebih dahulu');
-  return b;
-}
-
 export function assertBranch(user: AuthUser, branchId: string | null | undefined) {
-  if (user.role === Role.SUPER_ADMIN) return;
-  if (!branchId || branchId !== user.branchId) throw new ForbiddenException('Data ini milik cabang lain');
+  const ok = user.role === Role.SUPER_ADMIN ? !!branchId && user.branchIds.includes(branchId) : !!branchId && branchId === user.branchId;
+  if (!ok) throw new ForbiddenException('Data ini milik cabang lain');
 }

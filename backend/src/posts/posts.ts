@@ -4,9 +4,10 @@ import {
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { IsBoolean, IsEnum, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
 import { Repository } from 'typeorm';
-import { Post as PostEntity, PostType } from '../entities';
+import { Organization, Post as PostEntity, PostType } from '../entities';
 import { MediaField, MediaDto } from '../common/media';
 import { ADMIN_ROLES, assertBranch, Auth, AuthUser, CurrentUser, requireBranch, scopeBranch } from '../common/auth';
+import { CurrentOrg } from '../common/tenant';
 import { clean, paginate, randomSuffix, slugify } from '../common/util';
 
 export class PostDto {
@@ -33,7 +34,7 @@ export interface PostQuery {
 export class PostsService {
   constructor(@InjectRepository(PostEntity) private repo: Repository<PostEntity>) {}
 
-  async list(query: PostQuery, opts: { publishedOnly: boolean; branchId?: string }) {
+  async list(query: PostQuery, opts: { publishedOnly: boolean; orgId: string; branchIds?: string[] }) {
     const { page, limit, skip } = paginate(query);
     const qb = this.repo
       .createQueryBuilder('p')
@@ -44,21 +45,23 @@ export class PostsService {
       .skip(skip)
       .take(limit);
     if (opts.publishedOnly) qb.andWhere('p.published = true');
-    const branchId = opts.branchId ?? query.branchId;
-    if (branchId) qb.andWhere('p.branchId = :branchId', { branchId });
+    qb.andWhere('b.organizationId = :org', { org: opts.orgId });
+    if (opts.branchIds) qb.andWhere('p.branchId IN (:...branchIds)', { branchIds: opts.branchIds });
+    else if (query.branchId) qb.andWhere('p.branchId = :branchId', { branchId: query.branchId });
     if (query.type) qb.andWhere('p.type = :type', { type: query.type });
     if (query.q) qb.andWhere('(p.title ILIKE :q OR a.name ILIKE :q)', { q: `%${query.q}%` });
     const [data, total] = await qb.getManyAndCount();
     return { data, total, page, limit };
   }
 
-  async bySlug(slug: string) {
+  async bySlug(orgId: string, slug: string) {
     const post = await this.repo
       .createQueryBuilder('p')
       .leftJoin('p.author', 'a')
       .addSelect(['a.id', 'a.name', 'a.avatarUrl'])
       .leftJoinAndSelect('p.branch', 'b')
       .where('p.slug = :slug AND p.published = true', { slug })
+      .andWhere('b.organizationId = :org', { org: orgId })
       .getOne();
     if (!post) throw new NotFoundException('Artikel tidak ditemukan');
     return post;
@@ -98,11 +101,11 @@ export class PostsService {
 @Controller('posts')
 export class PostsController {
   constructor(private svc: PostsService) {}
-  @Get() list(@Query() q: PostQuery) {
-    return this.svc.list(q, { publishedOnly: true });
+  @Get() list(@CurrentOrg() org: Organization, @Query() q: PostQuery) {
+    return this.svc.list(q, { publishedOnly: true, orgId: org.id });
   }
-  @Get(':slug') get(@Param('slug') slug: string) {
-    return this.svc.bySlug(slug);
+  @Get(':slug') get(@CurrentOrg() org: Organization, @Param('slug') slug: string) {
+    return this.svc.bySlug(org.id, slug);
   }
 }
 
@@ -111,7 +114,7 @@ export class PostsController {
 export class AdminPostsController {
   constructor(private svc: PostsService) {}
   @Get() list(@CurrentUser() u: AuthUser, @Query() q: PostQuery) {
-    return this.svc.list(q, { publishedOnly: false, branchId: scopeBranch(u, q.branchId) });
+    return this.svc.list(q, { publishedOnly: false, orgId: u.organizationId, branchIds: scopeBranch(u, q.branchId) });
   }
   @Get(':id') get(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.get(id).then((p) => (assertBranch(u, p.branchId), p));

@@ -47,7 +47,7 @@ body {
 
 .bg-mesh {
   background:
-    radial-gradient(60rem 40rem at 10% -10%, rgb(61 140 207 / 0.22), transparent 60%),
+    radial-gradient(60rem 40rem at 10% -10%, rgb(var(--brand-rgb, 61 140 207) / 0.22), transparent 60%),
     radial-gradient(50rem 35rem at 110% 20%, rgb(61 63 154 / 0.35), transparent 60%),
     radial-gradient(40rem 30rem at 50% 120%, rgb(47 48 113 / 0.45), transparent 60%),
     var(--color-ink-950);

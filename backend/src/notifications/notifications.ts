@@ -51,8 +51,9 @@ export class NotificationsService {
       userIds = cls.students.map((s) => s.parentId).filter((x): x is string => !!x);
     } else {
       if (!dto.userIds?.length) throw new BadRequestException('Pilih minimal satu penerima');
-      const users = await this.users.find({ where: { id: In(dto.userIds) }, select: ['id', 'branchId'] });
-      users.forEach((u) => assertBranch(actor, u.branchId));
+      const users = await this.users.find({ where: { id: In(dto.userIds), organizationId: actor.organizationId }, select: ['id', 'branchId'] });
+      if (users.length !== new Set(dto.userIds).size) throw new BadRequestException('Sebagian penerima tidak ditemukan');
+      users.forEach((u) => (actor.role === Role.SUPER_ADMIN && !u.branchId) || assertBranch(actor, u.branchId));
       userIds = users.map((u) => u.id);
     }
     if (!userIds.length) throw new BadRequestException('Tidak ada penerima untuk target ini');
@@ -70,8 +71,7 @@ export class NotificationsService {
       .orderBy('n.createdAt', 'DESC')
       .skip(skip)
       .take(limit);
-    const branchId = scopeBranch(actor, q.branchId);
-    if (branchId) qb.where('n.branchId = :branchId', { branchId });
+    qb.where('n.branchId IN (:...branchIds)', { branchIds: scopeBranch(actor, q.branchId) });
     const [data, total] = await qb.getManyAndCount();
     return { data, total, page, limit };
   }

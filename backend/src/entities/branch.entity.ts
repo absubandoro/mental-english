@@ -1,10 +1,14 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Organization } from './organization.entity';
 
 @Entity('branches')
+@Index('UQ_branch_org_slug', ['organizationId', 'slug'], { unique: true })
 export class Branch {
   @PrimaryGeneratedColumn('uuid') id: string;
   @Column() name: string;
-  @Column({ unique: true }) slug: string;
+  @Column() slug: string;
+  @Column({ type: 'uuid' }) organizationId: string;
+  @ManyToOne(() => Organization, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'organizationId' }) organization: Organization;
   @Column({ type: 'text', nullable: true }) address: string | null;
   @Column({ type: 'varchar', nullable: true }) city: string | null;
   @Column({ type: 'varchar', nullable: true }) phone: string | null;

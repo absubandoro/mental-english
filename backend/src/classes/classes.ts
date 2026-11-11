@@ -67,8 +67,7 @@ export class ClassesService {
       .leftJoinAndSelect('c.branch', 'b')
       .leftJoinAndSelect('c.schedules', 'sc')
       .orderBy('c.name', 'ASC');
-    const branchId = scopeBranch(actor, q.branchId);
-    if (branchId) qb.andWhere('c.branchId = :branchId', { branchId });
+    qb.andWhere('c.branchId IN (:...branchIds)', { branchIds: scopeBranch(actor, q.branchId) });
     if (q.q) qb.andWhere('c.name ILIKE :q', { q: `%${q.q}%` });
     let list = await qb.getMany();
     if (q.mine === 'true') list = list.filter((c) => c.teachers.some((t) => t.id === actor.id));

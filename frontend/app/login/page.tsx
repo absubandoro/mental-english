@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AuthCard } from '@/components/AuthCard';
+import { useOrg } from '@/components/OrgProvider';
 import { Button, ErrorBox, Field } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { ROLE_HOME } from '@/lib/format';
@@ -12,6 +13,7 @@ import { useBranches } from '@/lib/useBranches';
 export default function LoginPage() {
   const { login, user, loading } = useAuth();
   const { branches } = useBranches();
+  const org = useOrg();
   const router = useRouter();
   const [form, setForm] = useState({ email: '', password: '', branchId: '' });
   const [busy, setBusy] = useState(false);
@@ -22,7 +24,7 @@ export default function LoginPage() {
   }, [loading, user, router]);
 
   return (
-    <AuthCard title="Masuk" desc="Selamat datang kembali di Mental English" footer={<>Calon siswa? <Link href="/daftar" className="text-brand-300 hover:underline">Daftar siswa baru</Link></>}>
+    <AuthCard title="Masuk" desc={`Selamat datang kembali di ${org.name}`} footer={<>Calon siswa? <Link href="/daftar" className="text-brand-300 hover:underline">Daftar siswa baru</Link></>}>
       <form
         className="space-y-4"
         onSubmit={async (e) => {

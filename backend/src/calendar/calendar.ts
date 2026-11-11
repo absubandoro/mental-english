@@ -63,7 +63,7 @@ export class CalendarService {
         .getMany();
       return { branchIds, classIds: cls.map((c) => c.id) };
     }
-    const branchId = scopeBranch(user, q.branchId);
+    const branchIds = scopeBranch(user, q.branchId);
     let classIds: string[] | null = null;
     if (user.role === Role.TEACHER && q.mine === 'true') {
       const mine = await this.classes
@@ -73,7 +73,7 @@ export class CalendarService {
         .getMany();
       classIds = mine.map((c) => c.id);
     }
-    return { branchIds: branchId ? [branchId] : null, classIds };
+    return { branchIds, classIds };
   }
 
   async range(user: AuthUser, q: CalendarQuery) {

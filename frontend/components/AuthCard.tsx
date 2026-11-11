@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import { BrandMark } from './Logo';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { PublicTabBar } from './PublicTabBar';
@@ -12,7 +12,7 @@ export function AuthCard({ title, desc, children, footer }: { title: string; des
         </Link>
         <div className="card p-6 sm:p-8">
           <div className="mb-6 flex items-center gap-3">
-            <Image src="/logo.png" alt="Mental English" width={52} height={52} className="rounded-full" priority />
+            <BrandMark size={52} />
             <div>
               <h1 className="font-display text-2xl font-bold text-white">{title}</h1>
               <p className="text-sm text-slate-400">{desc}</p>

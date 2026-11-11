@@ -48,6 +48,9 @@ Password semua akun: `password123` (di server: nilai `SEED_PASSWORD`)
 | Orang tua | ortu.aisyah@mentalenglish.id | — |
 | Pelajar | aisyah@mentalenglish.id | — |
 
+**Lembaga contoh kedua — Bimbel Cerdas** (buka `http://bimbel-cerdas.localhost:3000`, data terpisah penuh dari Mental English):
+`superadmin@bimbelcerdas.id`, `admin@bimbelcerdas.id` (cabang Bimbel Cerdas Depok), `pengajar@bimbelcerdas.id`, `ortu@bimbelcerdas.id`, `raka@bimbelcerdas.id`.
+
 Akun lain mengikuti pola `admin.bandung@…`, `teacher2.surabaya@…`, dst. Cabang **Pusat** beralamat di Jatimurni, Pondok Melati, Kota Bekasi. Cabang Bandung & Surabaya masih **contoh**, dan nomor telepon semua cabang juga contoh — ganti lewat menu **Cabang** (super admin).
 
 ## Fitur
@@ -83,14 +86,32 @@ Peran baru, terkunci per cabang: **verifikasi bukti pembayaran** (terima / tolak
 
 **Super admin** dapat mengelola cabang & admin cabang, serta memilih cabang aktif di sidebar.
 
+## Multi-lembaga (satu aplikasi untuk banyak klien)
+
+Hierarki data: **Organisasi (lembaga/klien) → Cabang → User, kelas, tagihan, blog, mading, rapor, dst.** Mental English adalah organisasi pertama.
+
+- **Organisasi dikenali dari domain yang dibuka**, berurutan: `<slug>.PLATFORM_DOMAIN` (mis. `budi.produkanda.id`) → `<slug>.localhost` (lokal) → domain kustom terdaftar (mis. `belajar.kursusbudi.com`) → `DEFAULT_ORG` (cadangan, mis. untuk `localhost`).
+  Website mengirim header `X-Tenant-Host`; di server, Nginx meneruskan `Host` asli.
+- **Login hanya mencari akun di organisasi domain tersebut**; email yang sama boleh terdaftar di dua lembaga. Token login ditolak bila dipakai di domain lembaga lain.
+- **Semua data dibatasi per organisasi di sisi server**: Super Admin hanya melihat cabang milik organisasinya; endpoint publik (cabang, blog, mading, pendaftaran) hanya menampilkan data lembaga dari domain itu. File unggahan disimpan di `uploads/<organizationId>/`.
+- **White-label**: nama, tagline, deskripsi, logo, warna merek, foto landing, dan kontak diatur Super Admin di menu **Identitas Lembaga** (`/admin/lembaga`). Favicon, ikon aplikasi HP, manifest, judul halaman, preview link (`/opengraph-image`), dan kop rapor otomatis mengikuti.
+- **Kelola organisasi** dari terminal server (lihat DEPLOY.md):
+  ```bash
+  node dist/org.js daftar
+  node dist/org.js tambah --slug kursus-budi --nama "Kursus Budi" --email superadmin@kursusbudi.com [--domain belajar.kursusbudi.com] [--warna "#16a34a"]
+  node dist/org.js domain-tambah --slug kursus-budi --domain belajar.kursusbudi.com
+  node dist/org.js nonaktif --slug kursus-budi
+  ```
+  Lokal: `npm run org -- daftar`.
+
 ## Aturan cabang
 - Setiap user, kelas, blog, mading, dan pembayaran terikat ke **cabang**.
 - **Admin, pengajar & keuangan wajib memilih cabang saat login** dan hanya bisa masuk ke cabangnya sendiri (`401 Akun Anda tidak terdaftar di cabang ini`).
 - Seluruh endpoint admin/pengajar dibatasi ke cabang miliknya di sisi server, termasuk saat mengakses data lewat ID.
 
 ## Branding
-- Favicon, apple icon, dan Open Graph / Twitter image dibuat dari logo: `frontend/app/{favicon.ico,icon.png,apple-icon.png,opengraph-image.png,twitter-image.png}`.
-- Set `NEXT_PUBLIC_SITE_URL` ke domain produksi agar URL `og:image` benar.
+- Branding diambil dari data organisasi (menu **Identitas Lembaga**), bukan dari kode. Warna merek menimpa variabel tema `--color-brand-*`.
+- Favicon & ikon aplikasi: `/brand/icon?size=…` (logo lembaga, atau inisial berwarna merek bila belum ada logo). Preview link: `/opengraph-image`.
 
 ## Catatan teknis
 - Struktur database dikelola lewat **migrasi** (`backend/src/migrations`) dan dijalankan otomatis saat API start. Setelah mengubah entity: `npm run migration:generate src/migrations/NamaPerubahan`.

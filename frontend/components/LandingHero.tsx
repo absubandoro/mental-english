@@ -4,7 +4,10 @@ import { ArrowRight, ChevronLeft, ChevronRight, LayoutDashboard, LogIn, LogOut, 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth';
+import { BrandMark } from './Logo';
+import { useOrg } from './OrgProvider';
 import { PublicTabBar } from './PublicTabBar';
+import { splitName } from '@/lib/org';
 import { ROLE_HOME, ROLE_LABEL } from '@/lib/format';
 
 interface Card {
@@ -12,24 +15,28 @@ interface Card {
   href: string;
   caption: string;
   title: string;
-  /** Foto kartu sekaligus background saat kartu aktif */
-  photo: string;
+  /** Foto kartu sekaligus background saat kartu aktif (kosong = gradasi warna merek) */
+  photo: string | null;
   /** Kartu tanpa foto memakai gradasi + ikon */
   icon?: React.ReactNode;
   onClick?: () => void;
 }
 
-const PHOTOS = {
-  welcome: '/landing/welcome.jpg',
-  holiday: '/landing/holiday.jpg',
-  team: '/landing/team.jpg',
-};
-
 const AUTOPLAY_MS = 6000;
+
 
 /** Landing: satu section — background foto + menu berupa kartu carousel (tanpa header bar) */
 export function LandingHero({ cities }: { cities: string[] }) {
   const { user, logout } = useAuth();
+  const org = useOrg();
+  const [first, rest] = splitName(org.name);
+  // Foto dari menu Identitas Lembaga; yang kosong memakai foto lain / gradasi
+  const pool = [org.photos.welcome, org.photos.holiday, org.photos.team].filter((x): x is string => !!x);
+  const PHOTOS = {
+    welcome: org.photos.welcome || pool[0] || null,
+    holiday: org.photos.holiday || pool[1] || pool[0] || null,
+    team: org.photos.team || pool[2] || pool[0] || null,
+  };
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const track = useRef<HTMLDivElement>(null);
@@ -56,7 +63,7 @@ export function LandingHero({ cities }: { cities: string[] }) {
         ]),
   ];
   const total = cards.length;
-  const backgrounds = [...new Set(cards.map((c) => c.photo))];
+  const backgrounds = [...new Set(cards.map((c) => c.photo).filter((x): x is string => !!x))];
 
   const go = useCallback((i: number) => setActive(((i % total) + total) % total), [total]);
 
@@ -79,6 +86,8 @@ export function LandingHero({ cities }: { cities: string[] }) {
     <main className="relative isolate flex min-h-dvh flex-col overflow-hidden bg-ink-950">
       {/* Background foto, berganti mengikuti kartu aktif */}
       <div aria-hidden className="absolute inset-0 -z-10">
+        {/* Tanpa foto: gradasi warna merek */}
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-600/60 via-navy-600/50 to-ink-950" />
         {backgrounds.map((src) => (
           <div key={src} className={`absolute inset-0 transition-opacity duration-1000 ${current.photo === src ? 'opacity-100' : 'opacity-0'}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -92,10 +101,9 @@ export function LandingHero({ cities }: { cities: string[] }) {
 
       {/* Logo — tanpa header bar */}
       <div className="mx-auto w-full max-w-7xl px-4 pt-[calc(1.5rem+env(safe-area-inset-top))] sm:px-8 sm:pt-6">
-        <Link href="/" className="inline-flex items-center gap-3" aria-label="Mental English">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="" width={44} height={44} className="rounded-full ring-2 ring-white/20" />
-          <span className="font-condensed text-sm font-medium tracking-[0.3em] text-white uppercase">Mental English</span>
+        <Link href="/" className="inline-flex items-center gap-3" aria-label={org.name}>
+          <BrandMark size={44} className="ring-2 ring-white/20" />
+          <span className="font-condensed text-sm font-medium tracking-[0.3em] text-white uppercase">{org.name}</span>
         </Link>
       </div>
 
@@ -103,15 +111,19 @@ export function LandingHero({ cities }: { cities: string[] }) {
         {/* Kiri: judul */}
         <div className="max-w-xl self-center lg:self-end lg:pb-24">
           <span className="block h-0.5 w-10 bg-brand-400" />
-          <p className="mt-4 text-base font-medium text-brand-200 sm:text-lg">Build Your Mental Focus!</p>
-          <h1 className="mt-2 font-condensed text-6xl leading-[0.95] font-semibold tracking-tight text-white uppercase sm:text-7xl xl:text-8xl">
-            Mental
-            <br />
-            English
+          {org.tagline && <p className="mt-4 text-base font-medium text-brand-200 sm:text-lg">{org.tagline}</p>}
+          <h1 className="mt-2 font-condensed text-6xl leading-[0.95] font-semibold tracking-tight break-words text-white uppercase sm:text-7xl xl:text-8xl">
+            {first}
+            {rest && (
+              <>
+                <br />
+                {rest}
+              </>
+            )}
           </h1>
           <p className="mt-6 max-w-md text-sm leading-relaxed text-slate-300 sm:text-base">
-            Kursus bahasa Inggris yang melatih keberanian berbicara, fokus, dan kepercayaan diri. Orang tua dapat memantau absensi, hasil ujian, dan
-            pembayaran anak secara langsung.
+            {org.description ??
+              'Orang tua dapat memantau absensi, hasil ujian, rapor, dan pembayaran anak secara langsung — dari HP maupun komputer.'}
           </p>
           <div className="mt-8 flex items-center gap-4">
             <Link
@@ -149,10 +161,9 @@ export function LandingHero({ cities }: { cities: string[] }) {
                     i === active ? 'ring-2 ring-brand-300' : 'ring-white/15 hover:ring-white/40'
                   }`}
                 >
-                  {c.icon ? (
+                  {c.icon || !c.photo ? (
                     <div className="absolute inset-0 bg-gradient-to-br from-brand-500 via-navy-500 to-navy-700">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src="/logo.png" alt="" className="absolute -top-6 -right-8 size-40 rounded-full opacity-20" />
+                      <BrandMark size={160} className="absolute -top-6 -right-8 opacity-20" />
                       <span className="absolute top-1/3 left-5 text-white/90">{c.icon}</span>
                     </div>
                   ) : (
@@ -190,7 +201,7 @@ export function LandingHero({ cities }: { cities: string[] }) {
       </section>
 
       <p className="mx-auto w-full max-w-7xl px-4 pb-5 text-xs text-slate-400 sm:px-8">
-        © {new Date().getFullYear()} Mental English{cities.length > 0 && <> · {cities.join(' · ')}</>}
+        © {new Date().getFullYear()} {org.name}{cities.length > 0 && <> · {cities.join(' · ')}</>}
       </p>
       <PublicTabBar />
     </main>

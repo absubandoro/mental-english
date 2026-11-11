@@ -1,7 +1,8 @@
 'use client';
 
 import { CheckCircle2, GraduationCap, UserRound } from 'lucide-react';
-import Image from 'next/image';
+import { BrandMark } from '@/components/Logo';
+import { useOrg } from '@/components/OrgProvider';
 import Link from 'next/link';
 import { useState } from 'react';
 import { PublicTabBar } from '@/components/PublicTabBar';
@@ -29,6 +30,7 @@ const EMPTY = {
 /** Pendaftaran siswa baru — ditinjau admin cabang, lalu akun orang tua & pelajar dibuat otomatis */
 export default function DaftarSiswa() {
   const { branches } = useBranches();
+  const org = useOrg();
   const [form, setForm] = useState(EMPTY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,8 +41,8 @@ export default function DaftarSiswa() {
     <main className="bg-mesh min-h-dvh px-4 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-10 sm:py-10">
       <div className="mx-auto max-w-2xl">
         <Link href="/" className="mb-6 inline-flex items-center gap-3">
-          <Image src="/logo.png" alt="Mental English" width={44} height={44} className="rounded-full" priority />
-          <span className="font-condensed text-sm font-medium tracking-[0.3em] text-white uppercase">Mental English</span>
+          <BrandMark size={44} />
+          <span className="font-condensed text-sm font-medium tracking-[0.3em] text-white uppercase">{org.name}</span>
         </Link>
 
         {done ? (
@@ -63,7 +65,7 @@ export default function DaftarSiswa() {
         ) : (
           <>
             <p className="text-sm font-semibold tracking-[0.2em] text-brand-300 uppercase">Pendaftaran siswa baru</p>
-            <h1 className="mt-2 font-display text-3xl font-extrabold text-white sm:text-4xl">Daftar di Mental English</h1>
+            <h1 className="mt-2 font-display text-3xl font-extrabold text-white sm:text-4xl">Daftar di {org.name}</h1>
             <p className="mt-2 text-slate-400">Isi data di bawah ini. Admin cabang akan menghubungi Anda, lalu akun orang tua & pelajar dibuat setelah pendaftaran diterima.</p>
 
             <form

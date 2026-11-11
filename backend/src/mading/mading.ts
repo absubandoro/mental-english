@@ -4,9 +4,10 @@ import {
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { IsBoolean, IsOptional, IsString, MinLength } from 'class-validator';
 import { Repository } from 'typeorm';
-import { Mading, Role, User } from '../entities';
+import { Mading, Organization, Role, User } from '../entities';
 import { MediaField, MediaDto } from '../common/media';
 import { ADMIN_ROLES, assertBranch, Auth, AuthUser, CurrentUser, scopeBranch } from '../common/auth';
+import { CurrentOrg } from '../common/tenant';
 import { clean, paginate } from '../common/util';
 
 export class MadingDto {
@@ -36,7 +37,7 @@ export class MadingService {
     @InjectRepository(User) private users: Repository<User>,
   ) {}
 
-  async list(query: MadingQuery, opts: { publishedOnly?: boolean; branchId?: string; authorId?: string } = {}) {
+  async list(query: MadingQuery, opts: { publishedOnly?: boolean; orgId?: string; branchIds?: string[]; authorId?: string } = {}) {
     const { page, limit, skip } = paginate(query);
     const qb = this.repo
       .createQueryBuilder('m')
@@ -47,8 +48,9 @@ export class MadingService {
       .skip(skip)
       .take(limit);
     if (opts.publishedOnly) qb.andWhere('m.published = true');
-    const branchId = opts.branchId ?? query.branchId;
-    if (branchId) qb.andWhere('m.branchId = :branchId', { branchId });
+    if (opts.orgId) qb.andWhere('b.organizationId = :org', { org: opts.orgId });
+    if (opts.branchIds) qb.andWhere('m.branchId IN (:...branchIds)', { branchIds: opts.branchIds });
+    else if (query.branchId) qb.andWhere('m.branchId = :branchId', { branchId: query.branchId });
     if (opts.authorId) qb.andWhere('m.authorId = :authorId', { authorId: opts.authorId });
     if (query.category) qb.andWhere('m.category = :category', { category: query.category });
     if (query.q) qb.andWhere('(m.title ILIKE :q OR a.name ILIKE :q)', { q: `%${query.q}%` });
@@ -56,7 +58,7 @@ export class MadingService {
     return { data, total, page, limit };
   }
 
-  async get(id: string, publishedOnly = false) {
+  async get(id: string, publishedOnly = false, orgId?: string) {
     const qb = this.repo
       .createQueryBuilder('m')
       .leftJoin('m.author', 'a')
@@ -64,6 +66,7 @@ export class MadingService {
       .leftJoinAndSelect('m.branch', 'b')
       .where('m.id = :id', { id });
     if (publishedOnly) qb.andWhere('m.published = true');
+    if (orgId) qb.andWhere('b.organizationId = :org', { org: orgId });
     const m = await qb.getOne();
     if (!m) throw new NotFoundException('Mading tidak ditemukan');
     return m;
@@ -107,11 +110,11 @@ export class MadingService {
 @Controller('mading')
 export class MadingController {
   constructor(private svc: MadingService) {}
-  @Get() list(@Query() q: MadingQuery) {
-    return this.svc.list(q, { publishedOnly: true });
+  @Get() list(@CurrentOrg() org: Organization, @Query() q: MadingQuery) {
+    return this.svc.list(q, { publishedOnly: true, orgId: org.id });
   }
-  @Get(':id') get(@Param('id', ParseUUIDPipe) id: string) {
-    return this.svc.get(id, true);
+  @Get(':id') get(@CurrentOrg() org: Organization, @Param('id', ParseUUIDPipe) id: string) {
+    return this.svc.get(id, true, org.id);
   }
 }
 
@@ -140,7 +143,7 @@ export class StudentMadingController {
 export class AdminMadingController {
   constructor(private svc: MadingService) {}
   @Get() list(@CurrentUser() u: AuthUser, @Query() q: MadingQuery) {
-    return this.svc.list(q, { branchId: scopeBranch(u, q.branchId) });
+    return this.svc.list(q, { orgId: u.organizationId, branchIds: scopeBranch(u, q.branchId) });
   }
   @Patch(':id') moderate(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: MadingModerationDto) {
     return this.svc.moderate(u, id, dto.published);

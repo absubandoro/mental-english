@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -19,6 +19,8 @@ import { SessionsModule } from './sessions/sessions';
 import { StatsModule } from './stats/stats';
 import { UPLOAD_DIR, UploadsModule } from './uploads/uploads';
 import { UsersModule } from './users/users';
+import { OrganizationsModule } from './organizations/organizations';
+import { TenantMiddleware, TenantModule } from './common/tenant';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { UsersModule } from './users/users';
       }),
     }),
     ServeStaticModule.forRoot({ rootPath: UPLOAD_DIR, serveRoot: '/uploads' }),
+    TenantModule,
+    OrganizationsModule,
     AuthModule,
     BranchesModule,
     UsersModule,
@@ -52,4 +56,9 @@ import { UsersModule } from './users/users';
     EnrollmentsModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  /** Setiap request: tentukan organisasi (lembaga) dari domain yang dibuka */
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(TenantMiddleware).forRoutes('{*path}');
+  }
+}

@@ -103,7 +103,7 @@ export class ReportsService {
   }
 
   private async canEdit(user: AuthUser, r: ProgressReport) {
-    if (user.role === Role.SUPER_ADMIN) return true;
+    if (user.role === Role.SUPER_ADMIN) return user.branchIds.includes(r.branchId);
     if (user.role === Role.ADMIN) return r.branchId === user.branchId;
     if (user.role === Role.TEACHER) return r.branchId === user.branchId && ((await this.teaches(user, r.classId)) || r.authorId === user.id);
     return false;
@@ -191,8 +191,7 @@ export class ReportsService {
     } else if (user.role === Role.TEACHER) {
       qb.innerJoin('c.teachers', 'ct', 'ct.id = :me', { me: user.id }).where('r.branchId = :b', { b: user.branchId });
     } else if (user.role === Role.ADMIN || user.role === Role.SUPER_ADMIN) {
-      const branchId = scopeBranch(user, q.branchId);
-      qb.where(branchId ? 'r.branchId = :b' : '1=1', { b: branchId });
+      qb.where('r.branchId IN (:...branchIds)', { branchIds: scopeBranch(user, q.branchId) });
     } else {
       throw new ForbiddenException();
     }
@@ -215,7 +214,9 @@ export class ReportsService {
   private async checkClassAndStudent(user: AuthUser, classId: string, studentId?: string) {
     const cls = await this.classes.findOne({ where: { id: classId }, relations: { students: true } });
     if (!cls) throw new BadRequestException('Kelas tidak ditemukan');
-    if (user.role !== Role.SUPER_ADMIN && cls.branchId !== user.branchId) throw new ForbiddenException('Kelas milik cabang lain');
+    if (user.role === Role.SUPER_ADMIN ? !user.branchIds.includes(cls.branchId) : cls.branchId !== user.branchId) {
+      throw new ForbiddenException('Kelas milik cabang lain');
+    }
     if (user.role === Role.TEACHER && !(await this.teaches(user, classId))) throw new ForbiddenException('Anda belum di-assign ke kelas ini');
     if (studentId && !cls.students.some((s) => s.id === studentId)) throw new BadRequestException('Pelajar tidak terdaftar di kelas ini');
     return cls;

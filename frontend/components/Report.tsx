@@ -1,7 +1,8 @@
 'use client';
 
+import { BrandMark } from './Logo';
+import { useOrg } from './OrgProvider';
 import { ArrowLeft, CalendarCheck, Eye, EyeOff, FileBadge, Plus, Printer, RefreshCw, Save, Trash2 } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -22,15 +23,16 @@ export function ReportView({ r, paper = false }: { r: ProgressReport; paper?: bo
   const c = paper
     ? { card: 'border border-slate-200 bg-white', h: 'text-slate-900', muted: 'text-slate-500', text: 'text-slate-700', track: 'bg-slate-100', soft: 'bg-slate-50' }
     : { card: 'card', h: 'text-white', muted: 'text-slate-400', text: 'text-slate-300', track: 'bg-white/10', soft: 'bg-white/[0.03]' };
+  const org = useOrg();
   const grade = r.overallGrade || r.suggestedGrade;
   const att = r.attendanceSummary;
   const ex = r.examSummary;
   return (
     <div className={`space-y-5 ${paper ? 'report-paper text-slate-800' : ''}`}>
       <div className={`flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:items-center sm:p-6 ${paper ? 'border-b-4 border-[#2f3071] bg-white' : 'bg-gradient-to-br from-brand-500/20 via-navy-600/30 to-transparent ring-1 ring-white/10'}`}>
-        <Image src="/logo.png" alt="Mental English" width={64} height={64} className="rounded-full" />
+        <BrandMark size={64} />
         <div className="min-w-0 flex-1">
-          <div className={`text-xs font-semibold tracking-[0.2em] uppercase ${paper ? 'text-[#2c72b3]' : 'text-brand-300'}`}>Rapor Perkembangan · Mental English</div>
+          <div className={`text-xs font-semibold tracking-[0.2em] uppercase ${paper ? 'text-[#2c72b3]' : 'text-brand-300'}`}>Rapor Perkembangan · {org.name}</div>
           <h1 className={`mt-1 font-display text-2xl font-bold ${c.h}`}>{r.title}</h1>
           <p className={`text-sm ${c.muted}`}>
             Periode {formatDate(r.periodStart)} – {formatDate(r.periodEnd)}

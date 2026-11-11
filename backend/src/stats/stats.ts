@@ -1,6 +1,6 @@
 import { Controller, Get, Module, Query } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { ClassRoom, ClassSession, Enrollment, EnrollmentStatus, Mading, Payment, PaymentStatus, Post, Role, User } from '../entities';
 import { ADMIN_ROLES, Auth, AuthUser, CurrentUser, scopeBranch } from '../common/auth';
 
@@ -12,8 +12,8 @@ export class AdminStatsController {
 
   @Get()
   async stats(@CurrentUser() u: AuthUser, @Query('branchId') requested?: string) {
-    const branchId = scopeBranch(u, requested);
-    const w = branchId ? { branchId } : {};
+    const branchIds = scopeBranch(u, requested);
+    const w = { branchId: In(branchIds) };
     const users = this.ds.getRepository(User);
     const [students, parents, teachers, classes, posts, mading, unpaid, sessions, pendingPayments, newEnrollments] = await Promise.all([
       users.count({ where: { ...w, role: Role.STUDENT } }),
@@ -27,7 +27,7 @@ export class AdminStatsController {
         .getRepository(ClassSession)
         .createQueryBuilder('s')
         .innerJoin('s.classRoom', 'c')
-        .where(branchId ? 'c.branchId = :branchId' : '1=1', { branchId })
+        .where('c.branchId IN (:...branchIds)', { branchIds })
         .getCount(),
       this.ds.getRepository(Payment).count({ where: { ...w, status: PaymentStatus.MENUNGGU } }),
       this.ds.getRepository(Enrollment).count({ where: { ...w, status: EnrollmentStatus.BARU } }),

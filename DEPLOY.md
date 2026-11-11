@@ -90,8 +90,10 @@ nano backend/.env
 |---|---|
 | `DATABASE_URL` | ganti `GANTI_PASSWORD_DB` dengan password database (langkah 3) |
 | `JWT_SECRET` | hasil `openssl rand -hex 32` |
-| `CORS_ORIGIN` | `https://domain-anda` |
-| `PUBLIC_URL` | `https://domain-anda/api` |
+| `CORS_ORIGIN` | `https://*.domain-anda` |
+| `PUBLIC_URL` | `/api` |
+| `PLATFORM_DOMAIN` | `domain-anda` (subdomain klien: `<slug>.domain-anda`) |
+| `DEFAULT_ORG` | `mental-english` (lembaga untuk domain utama) |
 | `SEED_PASSWORD` | password untuk akun demo / Super Admin — **jangan** `password123` |
 
 **Website** — `frontend/.env.production.local`:
@@ -146,6 +148,69 @@ sudo certbot --nginx -d mentalenglish.id
 Buka `https://mentalenglish.id` — selesai. 🎉
 
 ---
+
+## Multi-lembaga: subdomain & domain klien
+
+Satu instalasi melayani banyak lembaga (klien). Lembaga dikenali dari **domain yang dibuka**; semua memakai aplikasi, database, dan server yang sama, dengan data terpisah per lembaga. Mental English adalah lembaga pertama (slug `mental-english`).
+
+### A. Subdomain untuk setiap klien (`<slug>.mentalenglish.id`)
+
+1. **DNS wildcard** (sekali saja), di panel domain:
+
+   | Tipe | Nama | Nilai |
+   |---|---|---|
+   | A | `*` | IP publik VPS |
+
+2. **Sertifikat HTTPS wildcard** (sekali saja). Let's Encrypt mewajibkan verifikasi DNS untuk wildcard:
+
+   ```bash
+   sudo certbot certonly --manual --preferred-challenges dns -d mentalenglish.id -d '*.mentalenglish.id'
+   ```
+   Certbot meminta Anda menambahkan record `TXT _acme-challenge` di panel domain. Cara manual ini harus diulang tiap ±90 hari; agar perpanjangan otomatis, pakai plugin DNS penyedia domain Anda (mis. `python3-certbot-dns-cloudflare` bila DNS di Cloudflare).
+   Lalu di `/etc/nginx/sites-available/mental-english`, tambahkan blok HTTPS (salin isi `location` dari blok port 80):
+   ```nginx
+   server {
+       listen 443 ssl;
+       listen [::]:443 ssl;
+       server_name mentalenglish.id *.mentalenglish.id;
+       ssl_certificate     /etc/letsencrypt/live/mentalenglish.id/fullchain.pem;
+       ssl_certificate_key /etc/letsencrypt/live/mentalenglish.id/privkey.pem;
+       # ... location /api/ dan location / sama seperti blok port 80 ...
+   }
+   ```
+   dan ubah blok port 80 menjadi pengalih: `return 301 https://$host$request_uri;`.
+
+3. **`backend/.env`**: `PLATFORM_DOMAIN=mentalenglish.id` (dan `DEFAULT_ORG=mental-english` bila domain utama milik Mental English). **`frontend/.env.production.local`**: `NEXT_PUBLIC_API_URL=/api`. Lalu build ulang website dan `pm2 reload ecosystem.config.js --update-env`.
+
+4. **Tambah klien baru:**
+   ```bash
+   cd /var/www/mental-english/backend
+   node dist/org.js tambah --slug kursus-budi --nama "Kursus Budi" --email superadmin@kursusbudi.com --cabang "Kursus Budi Depok" --warna "#16a34a"
+   ```
+   Hasilnya: alamat `https://kursus-budi.mentalenglish.id`, akun Super Admin, dan password awal. Klien login, mengganti password, lalu mengisi **Identitas Lembaga** (logo, warna, foto, kontak).
+
+### B. Domain milik klien (`belajar.kursusbudi.com`)
+
+1. Klien menambahkan record di panel domain mereka: `CNAME belajar → mentalenglish.id` (atau `A belajar → IP VPS`).
+2. Daftarkan domainnya:
+   ```bash
+   node dist/org.js domain-tambah --slug kursus-budi --domain belajar.kursusbudi.com
+   ```
+3. Tambahkan `belajar.kursusbudi.com` ke `server_name` blok port 80 di konfigurasi Nginx, `sudo nginx -t && sudo systemctl reload nginx`, lalu terbitkan sertifikatnya:
+   ```bash
+   sudo certbot --nginx -d belajar.kursusbudi.com
+   ```
+
+### Perintah lain
+```bash
+node dist/org.js daftar                                   # semua lembaga, jumlah cabang/akun, domain
+node dist/org.js nonaktif --slug kursus-budi              # tutup website & login (mis. langganan berakhir)
+node dist/org.js aktif --slug kursus-budi
+node dist/org.js domain-hapus --domain belajar.kursusbudi.com
+```
+Perubahan domain/status berlaku paling lambat 1 menit (cache API).
+
+> **Upgrade dari versi satu lembaga:** migrasi database otomatis membuat organisasi `mental-english` dan memindahkan semua data lama ke sana. Set `DEFAULT_ORG=mental-english` agar domain lama tetap langsung membuka Mental English.
 
 ## Fitur otomatis yang berjalan sendiri
 

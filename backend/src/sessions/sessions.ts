@@ -72,8 +72,7 @@ export class SessionsService {
     if (actor.role === Role.TEACHER) {
       qb.innerJoin('c.teachers', 'ct', 'ct.id = :me', { me: actor.id });
     }
-    const branchId = scopeBranch(actor, q.branchId);
-    if (branchId) qb.andWhere('c.branchId = :branchId', { branchId });
+    qb.andWhere('c.branchId IN (:...branchIds)', { branchIds: scopeBranch(actor, q.branchId) });
     if (q.classId) qb.andWhere('s.classId = :classId', { classId: q.classId });
     if (q.date) qb.andWhere('s.date = :date', { date: q.date });
     if (q.type) qb.andWhere('s.type = :type', { type: q.type });

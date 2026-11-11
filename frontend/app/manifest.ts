@@ -1,11 +1,13 @@
 import type { MetadataRoute } from 'next';
+import { getOrg } from '@/lib/org-server';
 
-/** Web App Manifest — website bisa dipasang ke layar utama HP dan terbuka seperti aplikasi */
-export default function manifest(): MetadataRoute.Manifest {
+/** Web App Manifest — dipasang ke layar utama HP dengan nama & ikon lembaga */
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const org = await getOrg();
   return {
-    name: 'Mental English',
-    short_name: 'Mental English',
-    description: 'Build Your Mental Focus! Portal pelajar, orang tua, pengajar, dan admin Mental English.',
+    name: org.name,
+    short_name: org.name.length > 14 ? org.name.split(' ')[0] : org.name,
+    description: [org.tagline, `Portal pelajar, orang tua, pengajar, dan admin ${org.name}.`].filter(Boolean).join(' '),
     start_url: '/',
     scope: '/',
     display: 'standalone',
@@ -15,13 +17,13 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: 'id',
     categories: ['education'],
     icons: [
-      { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-      { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      { src: '/brand/icon?size=192', sizes: '192x192', type: 'image/png' },
+      { src: '/brand/icon?size=512', sizes: '512x512', type: 'image/png' },
+      { src: '/brand/icon?size=512&maskable=1', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
     shortcuts: [
-      { name: 'Dashboard Anak', url: '/orang-tua/dashboard', icons: [{ src: '/icon-192.png', sizes: '192x192' }] },
-      { name: 'Kelas Hari Ini', url: '/pengajar/sesi', icons: [{ src: '/icon-192.png', sizes: '192x192' }] },
+      { name: 'Dashboard Anak', url: '/orang-tua/dashboard', icons: [{ src: '/brand/icon?size=192', sizes: '192x192' }] },
+      { name: 'Kelas Hari Ini', url: '/pengajar/sesi', icons: [{ src: '/brand/icon?size=192', sizes: '192x192' }] },
     ],
   };
 }

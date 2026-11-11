@@ -4,22 +4,41 @@ import { PassportStrategy } from '@nestjs/passport';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Repository } from 'typeorm';
-import { User } from '../entities';
+import { Branch, Role, User } from '../entities';
 import { AuthUser } from '../common/auth';
+import { TenantRequest } from '../common/tenant';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(config: ConfigService, @InjectRepository(User) private users: Repository<User>) {
+  constructor(
+    config: ConfigService,
+    @InjectRepository(User) private users: Repository<User>,
+    @InjectRepository(Branch) private branches: Repository<Branch>,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: config.get<string>('JWT_SECRET') || 'dev-secret',
+      passReqToCallback: true,
     });
   }
 
-  async validate(payload: { sub: string }): Promise<AuthUser> {
+  async validate(req: TenantRequest, payload: { sub: string }): Promise<AuthUser> {
     // Selalu ambil dari DB agar perubahan cabang/role/nonaktif langsung berlaku
-    const user = await this.users.findOne({ where: { id: payload.sub }, select: ['id', 'role', 'branchId', 'name', 'isActive'] });
+    const user = await this.users.findOne({
+      where: { id: payload.sub },
+      select: ['id', 'role', 'branchId', 'name', 'isActive', 'organizationId'],
+    });
     if (!user || !user.isActive) throw new UnauthorizedException();
-    return { id: user.id, role: user.role, branchId: user.branchId, name: user.name };
+    // Token hanya berlaku di domain lembaganya sendiri
+    const org = req.org;
+    if (!org || org.id !== user.organizationId) throw new UnauthorizedException('Akun tidak terdaftar di lembaga ini');
+    if (!org.isActive) throw new UnauthorizedException('Layanan lembaga ini sedang tidak aktif');
+    const branchIds =
+      user.role === Role.SUPER_ADMIN
+        ? (await this.branches.find({ where: { organizationId: org.id }, select: ['id'] })).map((b) => b.id)
+        : user.branchId
+          ? [user.branchId]
+          : [];
+    return { id: user.id, role: user.role, branchId: user.branchId, name: user.name, organizationId: user.organizationId, branchIds };
   }
 }

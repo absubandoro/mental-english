@@ -106,8 +106,8 @@ export class PaymentsService {
     // Antrian verifikasi: yang paling lama menunggu di atas
     if (q.status === PaymentStatus.MENUNGGU) qb.orderBy('p.proofUploadedAt', 'ASC', 'NULLS LAST');
     else qb.orderBy('p.period', 'DESC').addOrderBy('s.name', 'ASC');
-    const branchId = scopeBranch(actor, q.branchId);
-    if (branchId) qb.andWhere('p.branchId = :branchId', { branchId });
+    const branchIds = scopeBranch(actor, q.branchId);
+    qb.andWhere('p.branchId IN (:...branchIds)', { branchIds });
     if (q.status) qb.andWhere('p.status = :status', { status: q.status });
     if (q.source) qb.andWhere('p.source = :source', { source: q.source });
     if (q.period) qb.andWhere('p.period = :period', { period: q.period });
@@ -121,15 +121,14 @@ export class PaymentsService {
       .addSelect('SUM(p.amount)', 'amount')
       .addSelect('COUNT(*)', 'count')
       .groupBy('p.status');
-    if (branchId) summaryQb.where('p.branchId = :branchId', { branchId });
+    summaryQb.where('p.branchId IN (:...branchIds)', { branchIds });
     if (q.period) summaryQb.andWhere('p.period = :period', { period: q.period });
     const summary = (await summaryQb.getRawMany()).map((r) => ({ status: r.status, amount: Number(r.amount), count: Number(r.count) }));
     return { data, total, page, limit, summary };
   }
 
   async pendingCount(actor: AuthUser, requested?: string) {
-    const branchId = scopeBranch(actor, requested);
-    const count = await this.repo.count({ where: { status: PaymentStatus.MENUNGGU, ...(branchId ? { branchId } : {}) } });
+    const count = await this.repo.count({ where: { status: PaymentStatus.MENUNGGU, branchId: In(scopeBranch(actor, requested)) } });
     return { count };
   }
 

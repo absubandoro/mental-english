@@ -11,7 +11,7 @@ import { config } from 'dotenv';
 import { DataSource } from 'typeorm';
 import {
   Attendance, AttendanceStatus, Branch, CalendarEvent, CalendarEventType, ClassRoom, ClassSchedule, ClassSession, Enrollment, EnrollmentStatus,
-  ExamResult, Mading, Notification, NotificationRecipient, NotificationTarget, Payment, PaymentSource, PaymentStatus, Post, PostType,
+  ExamResult, Mading, Notification, NotificationRecipient, NotificationTarget, Organization, Payment, PaymentSource, PaymentStatus, Post, PostType,
   ProgressReport, ReportStatus, Role, SessionType, User,
 } from './entities';
 import { addDays, dayOfWeek, slugify, todayLocal } from './common/util';
@@ -69,6 +69,68 @@ function monthOffset(n: number) {
   return d.toISOString().slice(0, 7);
 }
 
+/** Organisasi pertama (Mental English). Dibuat juga oleh migrasi; dibuat ulang setelah --reset / --kosong. */
+const MENTAL_ENGLISH: Partial<Organization> = {
+  slug: 'mental-english',
+  name: 'Mental English',
+  tagline: 'Build Your Mental Focus!',
+  description: 'Kursus bahasa Inggris yang melatih keberanian berbicara, fokus, dan kepercayaan diri. Orang tua dapat memantau absensi, hasil ujian, dan pembayaran anak secara langsung.',
+  logoUrl: '/logo.png',
+  brandColor: '#3d8ccf',
+  photos: { welcome: '/landing/welcome.jpg', holiday: '/landing/holiday.jpg', team: '/landing/team.jpg' },
+  email: 'info@mentalenglish.id',
+};
+
+async function ensureOrg(data: Partial<Organization>) {
+  const repo = ds.getRepository(Organization);
+  return (await repo.findOneBy({ slug: data.slug })) ?? repo.save(repo.create(data));
+}
+
+/** Lembaga contoh kedua — untuk mencoba pemisahan data antar-klien (buka http://bimbel-cerdas.localhost:3000) */
+async function seedSecondOrg(password: string) {
+  const org = await ensureOrg({
+    slug: 'bimbel-cerdas',
+    name: 'Bimbel Cerdas',
+    tagline: 'Belajar Seru, Nilai Melaju!',
+    description: 'Lembaga contoh kedua di platform yang sama. Datanya terpisah penuh dari Mental English.',
+    logoUrl: null,
+    brandColor: '#16a34a',
+    // Tanpa foto: landing memakai gradasi warna merek sampai foto diunggah lewat Identitas Lembaga
+    photos: {},
+    email: 'halo@bimbelcerdas.id',
+  });
+  const branch = await ds.getRepository(Branch).save(
+    ds.getRepository(Branch).create({
+      organizationId: org.id,
+      name: 'Bimbel Cerdas Depok',
+      slug: 'bimbel-cerdas-depok',
+      city: 'Depok',
+      address: 'Jl. Contoh Margonda No. 10, Depok',
+      mapQuery: 'Margonda, Depok',
+      phone: '0812-0000-0099',
+      openHours: 'Senin–Jumat, 14.00–20.00',
+    }),
+  );
+  const users = ds.getRepository(User);
+  const mk = (d: Partial<User>) => users.save(users.create({ password, organizationId: org.id, ...d }));
+  await mk({ name: 'Super Admin', email: 'superadmin@bimbelcerdas.id', role: Role.SUPER_ADMIN });
+  const admin = await mk({ name: 'Admin Depok', email: 'admin@bimbelcerdas.id', role: Role.ADMIN, branchId: branch.id });
+  await mk({ name: 'Kak Dina', email: 'pengajar@bimbelcerdas.id', role: Role.TEACHER, branchId: branch.id });
+  const parent = await mk({ name: 'Ibu Sari', email: 'ortu@bimbelcerdas.id', role: Role.PARENT, branchId: branch.id, phone: '0812-0000-0100' });
+  await mk({ name: 'Raka', email: 'raka@bimbelcerdas.id', role: Role.STUDENT, branchId: branch.id, parentId: parent.id, level: 'SD Kelas 5' });
+  await ds.getRepository(Post).save(
+    ds.getRepository(Post).create({
+      branchId: branch.id,
+      authorId: admin.id,
+      type: PostType.BLOG,
+      title: 'Selamat Datang di Bimbel Cerdas',
+      slug: 'selamat-datang-di-bimbel-cerdas',
+      excerpt: 'Artikel ini hanya muncul di website Bimbel Cerdas, bukan di Mental English.',
+      content: 'Bimbel Cerdas memakai platform yang sama dengan Mental English, tetapi data, tampilan, dan akunnya terpisah penuh.',
+    }),
+  );
+}
+
 async function main() {
   await ds.initialize();
   // Pastikan skema ada: migrasi (production) atau sinkronisasi (development)
@@ -87,10 +149,19 @@ async function main() {
       throw new Error('Set SEED_PASSWORD (minimal 8 karakter) untuk password Super Admin.');
     }
     await truncateAll();
+    const org = await ensureOrg(MENTAL_ENGLISH);
     const branchRepo = ds.getRepository(Branch);
     const pusat = { name: 'Mental English Pusat', city: 'Bekasi', address: 'Jatimurni, Pondok Melati, Kota Bekasi, Jawa Barat' };
-    await branchRepo.save(branchRepo.create({ ...pusat, slug: slugify(pusat.name), mapQuery: pusat.address }));
-    await users.save(users.create({ name: 'Super Admin', email: 'superadmin@mentalenglish.id', role: Role.SUPER_ADMIN, password: await bcrypt.hash(process.env.SEED_PASSWORD, 10) }));
+    await branchRepo.save(branchRepo.create({ ...pusat, organizationId: org.id, slug: slugify(pusat.name), mapQuery: pusat.address }));
+    await users.save(
+      users.create({
+        name: 'Super Admin',
+        email: 'superadmin@mentalenglish.id',
+        role: Role.SUPER_ADMIN,
+        organizationId: org.id,
+        password: await bcrypt.hash(process.env.SEED_PASSWORD, 10),
+      }),
+    );
     console.log('Semua data dihapus. Tersisa cabang "Mental English Pusat" dan Super Admin: superadmin@mentalenglish.id (password = SEED_PASSWORD).');
     return ds.destroy();
   }
@@ -103,8 +174,9 @@ async function main() {
     return ds.destroy();
   }
 
+  const org = await ensureOrg(MENTAL_ENGLISH);
   const password = await bcrypt.hash(DEFAULT_PASSWORD, 10);
-  const mk = (data: Partial<User>) => users.save(users.create({ password, ...data }));
+  const mk = (data: Partial<User>) => users.save(users.create({ password, organizationId: org.id, ...data }));
 
   const branchRepo = ds.getRepository(Branch);
   // Pusat = alamat asli. Cabang lain masih CONTOH (belum ada) — ganti lewat menu Cabang.
@@ -119,6 +191,7 @@ async function main() {
       await branchRepo.save(
         branchRepo.create({
           ...b,
+          organizationId: org.id,
           slug: slugify(b.name),
           mapQuery: b.address,
           billingEnabled: b.name.includes('Pusat'),
@@ -360,6 +433,8 @@ async function main() {
     await recipientRepo.insert(parentIds.map((userId) => ({ notificationId: n.id, userId })));
   }
 
+  await seedSecondOrg(password);
+
   console.log('\nSeed selesai. Password semua akun demo:', DEFAULT_PASSWORD);
   console.log('  Super admin : superadmin@mentalenglish.id');
   console.log('  Admin       : admin.pusat@mentalenglish.id   (login pilih cabang "Mental English Pusat")');
@@ -367,6 +442,7 @@ async function main() {
   console.log('  Pengajar    : teacher1.pusat@mentalenglish.id (login pilih cabang "Mental English Pusat")');
   console.log('  Orang tua   : ortu.aisyah@mentalenglish.id');
   console.log('  Pelajar     : aisyah@mentalenglish.id');
+  console.log('Lembaga contoh kedua "Bimbel Cerdas" (http://bimbel-cerdas.localhost:3000): superadmin@bimbelcerdas.id, admin@bimbelcerdas.id, ortu@bimbelcerdas.id');
   await ds.destroy();
 }
 

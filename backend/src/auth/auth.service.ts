@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
-import { Branch, ClassRoom, Role, User } from '../entities';
+import { Branch, ClassRoom, Organization, Role, User } from '../entities';
 import { clean } from '../common/util';
 import { LoginDto, UpdateProfileDto } from './auth.dto';
 
@@ -18,11 +18,13 @@ export class AuthService {
     private jwt: JwtService,
   ) {}
 
-  async login(dto: LoginDto) {
+  /** Login hanya mencari akun di organisasi (lembaga) dari domain yang dibuka */
+  async login(org: Organization, dto: LoginDto) {
     const user = await this.users
       .createQueryBuilder('u')
       .addSelect('u.password')
       .where('LOWER(u.email) = LOWER(:email)', { email: dto.email })
+      .andWhere('u.organizationId = :org', { org: org.id })
       .getOne();
     if (!user || !(await bcrypt.compare(dto.password, user.password))) {
       throw new UnauthorizedException('Email atau password salah');
@@ -39,7 +41,7 @@ export class AuthService {
   }
 
   private issue(user: User) {
-    const token = this.jwt.sign({ sub: user.id, role: user.role, branchId: user.branchId, name: user.name });
+    const token = this.jwt.sign({ sub: user.id, org: user.organizationId, role: user.role, branchId: user.branchId, name: user.name });
     return { token, user: this.sanitize(user) };
   }
 

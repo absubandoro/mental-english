@@ -1,4 +1,10 @@
+/** Production: "/api" (domain yang sama, lewat Nginx) agar berlaku untuk semua domain lembaga */
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
+/** Domain yang sedang dibuka — dipakai API untuk mengenali lembaga (organisasi) */
+export function tenantHeader(): Record<string, string> {
+  return typeof window === 'undefined' ? {} : { 'X-Tenant-Host': window.location.host };
+}
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
@@ -41,7 +47,7 @@ export async function api<T = unknown>(
   path: string,
   opts: { method?: string; body?: unknown; query?: Query; form?: FormData } = {},
 ): Promise<T> {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = tenantHeader();
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
@@ -72,6 +78,7 @@ export function uploadFile(file: File, onProgress?: (pct: number) => void): Prom
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${API_URL}/uploads`);
+    for (const [k, v] of Object.entries(tenantHeader())) xhr.setRequestHeader(k, v);
     const token = getToken();
     if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     xhr.upload.onprogress = (e) => e.lengthComputable && onProgress?.(Math.round((e.loaded / e.total) * 100));

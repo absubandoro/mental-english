@@ -75,11 +75,12 @@ export class UsersService {
       .leftJoin('u.children', 'c')
       .addSelect(['c.id', 'c.name'])
       .where('u.role != :sa', { sa: Role.SUPER_ADMIN })
+      .andWhere('u.organizationId = :org', { org: actor.organizationId })
       .orderBy('u.name', 'ASC')
       .skip(skip)
       .take(limit);
-    const branchId = scopeBranch(actor, q.branchId);
-    if (branchId) qb.andWhere('u.branchId = :branchId', { branchId });
+    // Super admin tanpa filter cabang: semua user di organisasinya (termasuk yang belum punya cabang)
+    if (!(actor.role === Role.SUPER_ADMIN && !q.branchId)) qb.andWhere('u.branchId IN (:...branchIds)', { branchIds: scopeBranch(actor, q.branchId) });
     if (q.role) qb.andWhere('u.role = :role', { role: q.role });
     if (q.parentId) qb.andWhere('u.parentId = :parentId', { parentId: q.parentId });
     if (q.q) qb.andWhere('(u.name ILIKE :q OR u.email ILIKE :q OR u.phone ILIKE :q)', { q: `%${q.q}%` });
@@ -89,15 +90,15 @@ export class UsersService {
 
   async get(actor: AuthUser, id: string) {
     const u = await this.repo.findOne({ where: { id }, relations: { branch: true, parent: true, children: true } });
-    if (!u || u.role === Role.SUPER_ADMIN) throw new NotFoundException('User tidak ditemukan');
-    assertBranch(actor, u.branchId);
+    if (!u || u.role === Role.SUPER_ADMIN || u.organizationId !== actor.organizationId) throw new NotFoundException('User tidak ditemukan');
+    if (!(actor.role === Role.SUPER_ADMIN && !u.branchId)) assertBranch(actor, u.branchId);
     return u;
   }
 
   private async validateParent(actor: AuthUser, parentId: string | null | undefined, branchId: string) {
     if (!parentId) return;
     const parent = await this.repo.findOneBy({ id: parentId });
-    if (!parent || parent.role !== Role.PARENT) throw new BadRequestException('Orang tua tidak valid');
+    if (!parent || parent.role !== Role.PARENT || parent.organizationId !== actor.organizationId) throw new BadRequestException('Orang tua tidak valid');
     if (actor.role !== Role.SUPER_ADMIN && parent.branchId !== branchId) {
       throw new BadRequestException('Orang tua harus terdaftar di cabang yang sama');
     }
@@ -107,12 +108,13 @@ export class UsersService {
     this.assertManageable(actor, dto.role);
     const branchId = requireBranch(actor, dto.branchId);
     const email = dto.email.toLowerCase();
-    if (await this.repo.exists({ where: { email } })) throw new ConflictException('Email sudah terdaftar');
+    if (await this.repo.exists({ where: { email, organizationId: actor.organizationId } })) throw new ConflictException('Email sudah terdaftar');
     if (dto.role === Role.STUDENT) await this.validateParent(actor, dto.parentId, branchId);
     const saved = await this.repo.save(
       this.repo.create({
         ...dto,
         email,
+        organizationId: actor.organizationId,
         branchId,
         parentId: dto.role === Role.STUDENT ? dto.parentId ?? null : null,
         password: await bcrypt.hash(dto.password, 10),
@@ -127,7 +129,7 @@ export class UsersService {
     const patch: Partial<User> = clean({ ...dto, password: undefined, parent: undefined }) as Partial<User>;
     if (dto.email) {
       patch.email = dto.email.toLowerCase();
-      const other = await this.repo.findOneBy({ email: patch.email });
+      const other = await this.repo.findOneBy({ email: patch.email, organizationId: actor.organizationId });
       if (other && other.id !== id) throw new ConflictException('Email sudah terdaftar');
     }
     if (dto.branchId) patch.branchId = requireBranch(actor, dto.branchId);

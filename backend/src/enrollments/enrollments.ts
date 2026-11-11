@@ -4,9 +4,10 @@ import {
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { IsDateString, IsEmail, IsEnum, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
-import { DataSource, Repository } from 'typeorm';
-import { Branch, ClassRoom, Enrollment, EnrollmentStatus, NotificationTarget, Role, User } from '../entities';
+import { DataSource, In, Repository } from 'typeorm';
+import { Branch, ClassRoom, Organization, Enrollment, EnrollmentStatus, NotificationTarget, Role, User } from '../entities';
 import { ADMIN_ROLES, assertBranch, Auth, AuthUser, CurrentUser, scopeBranch } from '../common/auth';
+import { CurrentOrg } from '../common/tenant';
 import { paginate, randomSuffix, slugify } from '../common/util';
 import { NotificationsModule, NotificationsService } from '../notifications/notifications';
 
@@ -48,14 +49,14 @@ export class EnrollmentsService {
     private notifications: NotificationsService,
   ) {}
 
-  async submit(dto: EnrollDto) {
+  async submit(org: Organization, dto: EnrollDto) {
     if (dto.website) return { ok: true }; // bot
-    const branch = await this.branches.findOneBy({ id: dto.branchId });
+    const branch = await this.branches.findOneBy({ id: dto.branchId, organizationId: org.id });
     if (!branch) throw new BadRequestException('Cabang tidak ditemukan');
     const parentEmail = dto.parentEmail.toLowerCase();
-    const existing = await this.users.findOneBy({ email: parentEmail });
+    const existing = await this.users.findOneBy({ email: parentEmail, organizationId: org.id });
     if (existing && existing.role !== Role.PARENT) throw new ConflictException('Email orang tua sudah dipakai akun lain');
-    const dup = await this.repo.exists({ where: { parentEmail, studentName: dto.studentName, status: EnrollmentStatus.BARU } });
+    const dup = await this.repo.exists({ where: { parentEmail, studentName: dto.studentName, status: EnrollmentStatus.BARU, branchId: branch.id } });
     if (dup) throw new ConflictException('Pendaftaran untuk siswa ini sudah kami terima dan sedang diproses');
     const { password, website: _w, ...rest } = dto;
     await this.repo.save(
@@ -91,8 +92,8 @@ export class EnrollmentsService {
       .addOrderBy('e.createdAt', 'DESC')
       .offset(skip)
       .limit(limit);
-    const branchId = scopeBranch(user, q.branchId);
-    if (branchId) qb.andWhere('e.branchId = :branchId', { branchId });
+    const branchIds = scopeBranch(user, q.branchId);
+    qb.andWhere('e.branchId IN (:...branchIds)', { branchIds });
     if (q.status) qb.andWhere('e.status = :status', { status: q.status });
     if (q.q) qb.andWhere('(e.studentName ILIKE :q OR e.parentName ILIKE :q OR e.parentPhone ILIKE :q)', { q: `%${q.q}%` });
     const [data, total] = await qb.getManyAndCount();
@@ -100,7 +101,7 @@ export class EnrollmentsService {
       .createQueryBuilder('e')
       .select('e.status', 'status')
       .addSelect('COUNT(*)', 'count')
-      .where(branchId ? 'e.branchId = :branchId' : '1=1', { branchId })
+      .where('e.branchId IN (:...branchIds)', { branchIds })
       .groupBy('e.status')
       .getRawMany();
     return { data, total, page, limit, counts: Object.fromEntries(counts.map((c) => [c.status, Number(c.count)])) };
@@ -125,9 +126,16 @@ export class EnrollmentsService {
 
   /** Terima pendaftaran: buat/tautkan akun orang tua, buat akun pelajar, opsional masukkan ke kelas */
   async accept(user: AuthUser, id: string, dto: AcceptEnrollmentDto) {
-    const e = await this.repo.createQueryBuilder('e').addSelect('e.passwordHash').where('e.id = :id', { id }).getOne();
+    const e = await this.repo
+      .createQueryBuilder('e')
+      .addSelect('e.passwordHash')
+      .leftJoinAndSelect('e.branch', 'b')
+      .leftJoinAndSelect('b.organization', 'o')
+      .where('e.id = :id', { id })
+      .getOne();
     if (!e) throw new NotFoundException('Pendaftaran tidak ditemukan');
     assertBranch(user, e.branchId);
+    const org = e.branch.organization;
     if (e.status === EnrollmentStatus.DITERIMA) throw new BadRequestException('Pendaftaran ini sudah diterima');
     let cls: ClassRoom | null = null;
     if (dto.classId) {
@@ -137,23 +145,24 @@ export class EnrollmentsService {
 
     const result = await this.ds.transaction(async (m) => {
       const users = m.getRepository(User);
-      let parent = await users.findOneBy({ email: e.parentEmail });
+      let parent = await users.findOneBy({ email: e.parentEmail, organizationId: org.id });
       if (parent && parent.role !== Role.PARENT) throw new ConflictException('Email orang tua sudah dipakai akun lain');
       const parentCreated = !parent;
       if (!parent) {
         parent = await users.save(
-          users.create({ name: e.parentName, email: e.parentEmail, phone: e.parentPhone, role: Role.PARENT, branchId: e.branchId, password: e.passwordHash }),
+          users.create({ name: e.parentName, email: e.parentEmail, phone: e.parentPhone, role: Role.PARENT, organizationId: org.id, branchId: e.branchId, password: e.passwordHash }),
         );
       }
       let studentEmail = e.studentEmail;
-      if (!studentEmail || (await users.exists({ where: { email: studentEmail } }))) {
-        studentEmail = `${slugify(e.studentName).replace(/-/g, '.') || 'siswa'}.${randomSuffix()}@siswa.mentalenglish.id`;
+      if (!studentEmail || (await users.exists({ where: { email: studentEmail, organizationId: org.id } }))) {
+        studentEmail = `${slugify(e.studentName).replace(/-/g, '.') || 'siswa'}.${randomSuffix()}@${org.slug}.siswa.id`;
       }
       const student = await users.save(
         users.create({
           name: e.studentName,
           email: studentEmail,
           role: Role.STUDENT,
+          organizationId: org.id,
           branchId: e.branchId,
           parentId: parent.id,
           birthDate: e.studentBirthDate,
@@ -177,7 +186,7 @@ export class EnrollmentsService {
     });
 
     await this.notifications.send({
-      title: 'Selamat datang di Mental English! 🎉',
+      title: `Selamat datang di ${org.name}! 🎉`,
       body:
         `Pendaftaran ${result.student.name} telah diterima${cls ? ` di kelas ${cls.name}` : ''}. ` +
         `Akun pelajar: ${result.student.email} (password sama dengan saat mendaftar).`,
@@ -198,8 +207,7 @@ export class EnrollmentsService {
   }
 
   async newCount(user: AuthUser, requested?: string) {
-    const branchId = scopeBranch(user, requested);
-    return { count: await this.repo.count({ where: { status: EnrollmentStatus.BARU, ...(branchId ? { branchId } : {}) } }) };
+    return { count: await this.repo.count({ where: { status: EnrollmentStatus.BARU, branchId: In(scopeBranch(user, requested)) } }) };
   }
 }
 
@@ -207,8 +215,8 @@ export class EnrollmentsService {
 @Controller('enrollments')
 export class EnrollmentsController {
   constructor(private svc: EnrollmentsService) {}
-  @Post() submit(@Body() dto: EnrollDto) {
-    return this.svc.submit(dto);
+  @Post() submit(@CurrentOrg() org: Organization, @Body() dto: EnrollDto) {
+    return this.svc.submit(org, dto);
   }
 }
 

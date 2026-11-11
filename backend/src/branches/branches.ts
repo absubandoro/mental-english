@@ -2,8 +2,9 @@ import { Body, Controller, Delete, Get, Injectable, Module, NotFoundException, P
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { IsOptional, IsString, MinLength } from 'class-validator';
 import { Repository } from 'typeorm';
-import { Branch, Role } from '../entities';
-import { Auth } from '../common/auth';
+import { Branch, Organization, Role } from '../entities';
+import { Auth, AuthUser, CurrentUser } from '../common/auth';
+import { CurrentOrg } from '../common/tenant';
 import { clean, slugify } from '../common/util';
 
 export class BranchDto {
@@ -19,28 +20,38 @@ export class BranchDto {
 export class BranchesService {
   constructor(@InjectRepository(Branch) private repo: Repository<Branch>) {}
 
-  list() {
-    return this.repo.find({ order: { createdAt: 'ASC', name: 'ASC' } });
+  list(orgId: string) {
+    return this.repo.find({ where: { organizationId: orgId }, order: { createdAt: 'ASC', name: 'ASC' } });
   }
 
-  async get(id: string) {
-    const b = await this.repo.findOneBy({ id });
+  async get(orgId: string, id: string) {
+    const b = await this.repo.findOneBy({ id, organizationId: orgId });
     if (!b) throw new NotFoundException('Cabang tidak ditemukan');
     return b;
   }
 
-  create(dto: BranchDto) {
-    return this.repo.save(this.repo.create({ ...dto, slug: slugify(dto.name) }));
+  private async uniqueSlug(orgId: string, name: string, exceptId?: string) {
+    const base = slugify(name) || 'cabang';
+    let slug = base;
+    for (let i = 2; ; i++) {
+      const other = await this.repo.findOneBy({ organizationId: orgId, slug });
+      if (!other || other.id === exceptId) return slug;
+      slug = `${base}-${i}`;
+    }
   }
 
-  async update(id: string, dto: Partial<BranchDto>) {
-    await this.get(id);
-    await this.repo.update(id, { ...clean(dto), ...(dto.name ? { slug: slugify(dto.name) } : {}) });
-    return this.get(id);
+  async create(orgId: string, dto: BranchDto) {
+    return this.repo.save(this.repo.create({ ...dto, organizationId: orgId, slug: await this.uniqueSlug(orgId, dto.name) }));
   }
 
-  async remove(id: string) {
-    await this.repo.delete(await this.get(id).then((b) => b.id));
+  async update(orgId: string, id: string, dto: Partial<BranchDto>) {
+    await this.get(orgId, id);
+    await this.repo.update(id, { ...clean(dto), ...(dto.name ? { slug: await this.uniqueSlug(orgId, dto.name, id) } : {}) });
+    return this.get(orgId, id);
+  }
+
+  async remove(orgId: string, id: string) {
+    await this.repo.delete(await this.get(orgId, id).then((b) => b.id));
     return { ok: true };
   }
 }
@@ -49,24 +60,25 @@ export class BranchesService {
 export class BranchesController {
   constructor(private svc: BranchesService) {}
 
-  @Get() list() {
-    return this.svc.list();
+  /** Publik: cabang milik lembaga dari domain yang dibuka */
+  @Get() list(@CurrentOrg() org: Organization) {
+    return this.svc.list(org.id);
   }
 
-  @Get(':id') get(@Param('id', ParseUUIDPipe) id: string) {
-    return this.svc.get(id);
+  @Get(':id') get(@CurrentOrg() org: Organization, @Param('id', ParseUUIDPipe) id: string) {
+    return this.svc.get(org.id, id);
   }
 
-  @Post() @Auth(Role.SUPER_ADMIN) create(@Body() dto: BranchDto) {
-    return this.svc.create(dto);
+  @Post() @Auth(Role.SUPER_ADMIN) create(@CurrentUser() u: AuthUser, @Body() dto: BranchDto) {
+    return this.svc.create(u.organizationId, dto);
   }
 
-  @Patch(':id') @Auth(Role.SUPER_ADMIN) update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: BranchDto) {
-    return this.svc.update(id, dto);
+  @Patch(':id') @Auth(Role.SUPER_ADMIN) update(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: BranchDto) {
+    return this.svc.update(u.organizationId, id, dto);
   }
 
-  @Delete(':id') @Auth(Role.SUPER_ADMIN) remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.svc.remove(id);
+  @Delete(':id') @Auth(Role.SUPER_ADMIN) remove(@CurrentUser() u: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.svc.remove(u.organizationId, id);
   }
 }
 

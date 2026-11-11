@@ -7,20 +7,28 @@ import { FilterBar } from '@/components/FilterBar';
 import { PublicShell } from '@/components/PublicShell';
 import { ServerPagination } from '@/components/ServerPagination';
 import { formatDate, youtubeId } from '@/lib/format';
+import { getOrg } from '@/lib/org-server';
 import { serverGet } from '@/lib/server-api';
 import type { Branch, Paged, Post } from '@/lib/types';
 
-export const metadata: Metadata = { title: 'Blog & Vlog', description: 'Artikel dan vlog kegiatan Mental English dari setiap cabang.' };
+export const metadata: Metadata = { title: 'Blog & Vlog', description: 'Artikel dan vlog kegiatan dari setiap cabang.' };
 export const dynamic = 'force-dynamic';
 
 type SP = Promise<{ q?: string; branchId?: string; type?: string; page?: string }>;
 
 export default async function BlogPage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
-  const [branches, posts] = await Promise.all([
+  const [branches, posts, org] = await Promise.all([
     serverGet<Branch[]>('/branches'),
     serverGet<Paged<Post>>('/posts', { ...sp, limit: '9' }),
+    getOrg(),
   ]);
+  // Kolase foto kegiatan dari foto lembaga (Identitas Lembaga)
+  const collage = [
+    { src: org.photos.holiday, cls: 'left-0 top-4 -rotate-6', tape: 'bg-amber-300/90' },
+    { src: org.photos.team, cls: 'right-0 top-0 rotate-6', tape: 'bg-pink-300/90' },
+    { src: org.photos.welcome, cls: 'left-1/2 top-16 -translate-x-1/2 rotate-2', tape: 'bg-emerald-300/90' },
+  ].filter((f): f is { src: string; cls: string; tape: string } => !!f.src);
 
   return (
     <PublicShell>
@@ -32,15 +40,11 @@ export default async function BlogPage({ searchParams }: { searchParams: SP }) {
           <h1 className="mt-4 font-display text-4xl font-extrabold text-white sm:text-5xl">
             Cerita seru dari <span className="text-amber-300">kelas kami</span>
           </h1>
-          <p className="mt-3 max-w-xl text-slate-300">Tips belajar, kegiatan outdoor, dan momen seru pelajar Mental English di setiap cabang.</p>
+          <p className="mt-3 max-w-xl text-slate-300">Tips belajar, kegiatan outdoor, dan momen seru pelajar {org.name} di setiap cabang.</p>
         </div>
         {/* Kolase foto kegiatan */}
         <div className="relative mx-auto hidden h-56 w-full max-w-sm sm:block">
-          {[
-            { src: '/landing/holiday.jpg', cls: 'left-0 top-4 -rotate-6', tape: 'bg-amber-300/90' },
-            { src: '/landing/team.jpg', cls: 'right-0 top-0 rotate-6', tape: 'bg-pink-300/90' },
-            { src: '/landing/welcome.jpg', cls: 'left-1/2 top-16 -translate-x-1/2 rotate-2', tape: 'bg-emerald-300/90' },
-          ].map((f) => (
+          {collage.map((f) => (
             <div key={f.src} className={`absolute w-44 rounded-lg bg-white p-2 pb-6 shadow-2xl shadow-black/40 ${f.cls}`}>
               <span className={`absolute -top-2 left-1/2 h-5 w-14 -translate-x-1/2 rotate-3 rounded-sm ${f.tape}`} />
               {/* eslint-disable-next-line @next/next/no-img-element */}

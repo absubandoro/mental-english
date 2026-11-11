@@ -1,10 +1,9 @@
 'use client';
 
 import {
-  Bell, Building2, CalendarCheck, CalendarDays, ChartPie, ChevronRight, CreditCard, FileBadge, GraduationCap, Home, LayoutDashboard, LayoutGrid,
+  BadgeCheck, Bell, Building2, CalendarCheck, CalendarDays, ChartPie, ChevronRight, CreditCard, FileBadge, GraduationCap, Home, LayoutDashboard, LayoutGrid,
   LogOut, Megaphone, Newspaper, Palette, ReceiptText, School, ShieldCheck, User as UserIcon, UserPlus, Users, UsersRound, Wallet,
 } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -13,7 +12,8 @@ import { useAuth, useRequireRole } from '@/lib/auth';
 import { ROLE_LABEL } from '@/lib/format';
 import type { Role } from '@/lib/types';
 import { useBranches } from '@/lib/useBranches';
-import { Logo } from './Logo';
+import { BrandMark, Logo } from './Logo';
+import { useOrg } from './OrgProvider';
 import { MobileTabBar, TabBarSpacer, type TabItem } from './MobileTabBar';
 import { Avatar, Modal, Spinner } from './ui';
 
@@ -69,6 +69,7 @@ const NAV: Record<Area, NavItem[]> = {
     { href: '/admin/keuangan', label: 'User Keuangan', icon: Wallet },
     { href: '/admin/notifikasi', label: 'Push Notifikasi', short: 'Notif', icon: Megaphone },
     { href: '/admin/kotak-masuk', label: 'Kotak Masuk', icon: Bell },
+    { href: '/admin/lembaga', label: 'Identitas Lembaga', short: 'Lembaga', icon: BadgeCheck, roles: ['SUPER_ADMIN'] },
     { href: '/admin/cabang', label: 'Cabang', icon: Building2, roles: ['SUPER_ADMIN'] },
     { href: '/admin/admin-cabang', label: 'Admin Cabang', icon: ShieldCheck, roles: ['SUPER_ADMIN'] },
     { href: '/admin/profil', label: 'Profil Saya', short: 'Profil', icon: UserIcon },
@@ -106,6 +107,7 @@ function isActive(href: string, pathname: string) {
 export function DashboardShell({ area, roles, children }: { area: Area; roles: Role[]; children: React.ReactNode }) {
   const { user, ready } = useRequireRole(roles);
   const { logout, activeBranchId, setActiveBranchId } = useAuth();
+  const org = useOrg();
   const pathname = usePathname();
   const router = useRouter();
   const [sheet, setSheet] = useState(false);
@@ -242,10 +244,10 @@ export function DashboardShell({ area, roles, children }: { area: Area; roles: R
         <header className="sticky top-0 z-30 border-b border-white/5 bg-ink-950/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl lg:hidden">
           <div className="flex h-14 items-center gap-3 px-4">
             <Link href="/" aria-label="Halaman utama" className="shrink-0">
-              <Image src="/logo.png" alt="" width={32} height={32} className="rounded-full" />
+              <BrandMark size={32} />
             </Link>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[15px] leading-tight font-semibold text-white">{current?.label ?? 'Mental English'}</div>
+              <div className="truncate text-[15px] leading-tight font-semibold text-white">{current?.label ?? org.name}</div>
               <div className="truncate text-[11px] leading-tight text-slate-400">{branchName ?? ROLE_LABEL[user.role]}</div>
             </div>
             {INBOX[area] && (

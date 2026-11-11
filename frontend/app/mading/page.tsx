@@ -6,17 +6,22 @@ import { PublicShell } from '@/components/PublicShell';
 import { ServerPagination } from '@/components/ServerPagination';
 import { DoodleCluster } from '@/components/CoverArt';
 import { MadingNote } from '@/components/MadingNote';
+import { getOrg } from '@/lib/org-server';
 import { serverGet } from '@/lib/server-api';
 import type { Branch, Mading, Paged } from '@/lib/types';
 
-export const metadata: Metadata = { title: 'Mading', description: 'Majalah dinding karya pelajar Mental English.' };
+export const metadata: Metadata = { title: 'Mading', description: 'Majalah dinding karya pelajar.' };
 export const dynamic = 'force-dynamic';
 
 type SP = Promise<{ q?: string; branchId?: string; page?: string }>;
 
 export default async function MadingPage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
-  const [branches, list] = await Promise.all([serverGet<Branch[]>('/branches'), serverGet<Paged<Mading>>('/mading', { ...sp, limit: '12' })]);
+  const [branches, list, org] = await Promise.all([
+    serverGet<Branch[]>('/branches'),
+    serverGet<Paged<Mading>>('/mading', { ...sp, limit: '12' }),
+    getOrg(),
+  ]);
 
   return (
     <PublicShell>
@@ -28,7 +33,7 @@ export default async function MadingPage({ searchParams }: { searchParams: SP })
           <h1 className="mt-4 font-display text-4xl font-extrabold text-white sm:text-5xl">
             Karya keren <span className="text-pink-300">pelajar kami</span>
           </h1>
-          <p className="mt-3 max-w-xl text-slate-300">Cerita, puisi, opini, dan gambar berbahasa Inggris yang ditempel langsung oleh pelajar Mental English.</p>
+          <p className="mt-3 max-w-xl text-slate-300">Cerita, puisi, opini, dan gambar berbahasa Inggris yang ditempel langsung oleh pelajar {org.name}.</p>
         </div>
         <DoodleCluster className="mx-auto hidden w-full max-w-sm sm:block" />
       </header>

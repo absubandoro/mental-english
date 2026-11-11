@@ -3,6 +3,7 @@
 import { CheckCircle2, MessageCircle, PhoneCall, UserPlus, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { BranchNotice, SearchInput, useBranchScope } from '@/components/admin';
+import { useOrg } from '@/components/OrgProvider';
 import { Badge, Button, Empty, ErrorBox, Field, Modal, PageHeader, Pagination, Spinner, Tabs } from '@/components/ui';
 import { api } from '@/lib/api';
 import { ENROLL_STATUS_LABEL, formatDate } from '@/lib/format';
@@ -24,6 +25,7 @@ function age(birth: string | null) {
 
 export default function Pendaftaran() {
   const scope = useBranchScope();
+  const org = useOrg();
   const [status, setStatus] = useState<'' | EnrollmentStatus>('BARU');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
@@ -111,7 +113,7 @@ export default function Pendaftaran() {
                 {e.adminNote && <p className="mt-2 text-xs text-amber-200/90">Catatan admin: {e.adminNote}</p>}
                 <div className="mt-auto flex flex-wrap gap-2 pt-4">
                   <a
-                    href={wa(e.parentPhone, `Halo ${e.parentName}, terima kasih telah mendaftarkan ${e.studentName} di Mental English. `)}
+                    href={wa(e.parentPhone, `Halo ${e.parentName}, terima kasih telah mendaftarkan ${e.studentName} di ${org.name}. `)}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/25"
@@ -178,7 +180,7 @@ export default function Pendaftaran() {
               <a
                 href={wa(
                   accepting.parentPhone,
-                  `Halo ${accepting.parentName}, pendaftaran ${accepting.studentName} di Mental English telah DITERIMA${result.className ? ` di kelas ${result.className}` : ''}. ` +
+                  `Halo ${accepting.parentName}, pendaftaran ${accepting.studentName} di ${org.name} telah DITERIMA${result.className ? ` di kelas ${result.className}` : ''}. ` +
                     `Silakan masuk di website kami dengan email ${result.parentEmail}. Akun pelajar: ${result.studentEmail}. Password sama dengan saat mendaftar.`,
                 )}
                 target="_blank"

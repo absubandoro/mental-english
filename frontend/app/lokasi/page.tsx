@@ -2,19 +2,20 @@ import { Clock, MapPin, Phone } from 'lucide-react';
 import type { Metadata } from 'next';
 import { PublicShell } from '@/components/PublicShell';
 import { mapsEmbed } from '@/lib/format';
+import { getOrg } from '@/lib/org-server';
 import { serverGet } from '@/lib/server-api';
 import type { Branch } from '@/lib/types';
 
-export const metadata: Metadata = { title: 'Lokasi Kami', description: 'Alamat dan peta seluruh cabang Mental English.' };
+export const metadata: Metadata = { title: 'Lokasi Kami', description: 'Alamat dan peta seluruh cabang kami.' };
 export const dynamic = 'force-dynamic';
 
 export default async function LokasiPage() {
-  const branches = (await serverGet<Branch[]>('/branches')) ?? [];
+  const [branches, org] = await Promise.all([serverGet<Branch[]>('/branches').then((b) => b ?? []), getOrg()]);
   return (
     <PublicShell>
       <header className="mb-10">
         <p className="text-sm font-semibold tracking-[0.2em] text-brand-300 uppercase">Lokasi Kami</p>
-        <h1 className="mt-2 font-display text-4xl font-extrabold text-white sm:text-5xl">Cabang Mental English</h1>
+        <h1 className="mt-2 font-display text-4xl font-extrabold text-white sm:text-5xl">Cabang {org.name}</h1>
         <p className="mt-3 max-w-2xl text-slate-400">Kunjungi cabang terdekat untuk konsultasi dan kelas percobaan.</p>
       </header>
       {branches.length === 0 && <p className="text-slate-400">Belum ada data cabang.</p>}
