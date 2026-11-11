@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { imageDataUrl } from '@/lib/brand-image';
 import { getOrg } from '@/lib/org-server';
+import { nofosysMarkDataUrl } from '@/lib/nofosys-mark';
 import { brandShades, initials } from '@/lib/org';
 
 /** Potong di batas kata */
@@ -14,7 +15,10 @@ export const contentType = 'image/png';
 export default async function OgImage() {
   const org = await getOrg();
   const s = brandShades(org.brandColor);
-  const [logo, photo] = await Promise.all([imageDataUrl(org.logoUrl), imageDataUrl(org.photos?.welcome)]);
+  const [logo, photo] = await Promise.all([
+    org.platform && !org.logoUrl ? nofosysMarkDataUrl(220) : imageDataUrl(org.logoUrl),
+    imageDataUrl(org.photos?.welcome),
+  ]);
   return new ImageResponse(
     (
       <div style={{ width: '100%', height: '100%', display: 'flex', background: '#060a1a', position: 'relative' }}>
@@ -34,7 +38,7 @@ export default async function OgImage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
             {logo ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={logo} width={110} height={110} alt="" style={{ borderRadius: 55 }} />
+              <img src={logo} width={110} height={110} alt="" style={{ borderRadius: org.platform ? 0 : 55 }} />
             ) : (
               <div
                 style={{

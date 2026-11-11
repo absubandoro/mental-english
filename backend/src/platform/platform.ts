@@ -6,9 +6,9 @@ import { ConfigService } from '@nestjs/config';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
-import { IsBoolean, IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength, ValidateIf } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsOptional, IsString, Matches, MaxLength, MinLength, ValidateIf } from 'class-validator';
 import { DataSource, In, Repository } from 'typeorm';
-import { Branch, Organization, OrganizationDomain, PlatformAdmin, Role, User } from '../entities';
+import { Branch, LeadStatus, Organization, OrganizationDomain, PlatformAdmin, PlatformLead, Role, User } from '../entities';
 import { isPlatformHost, normalizeHost, orgUrls, TenantRequest, TenantService } from '../common/tenant';
 import { clean } from '../common/util';
 import { addDomain, createOrganization, randomPassword, validSlug } from '../organizations/provision';
@@ -56,6 +56,24 @@ class PersonDto {
 
 class ToggleDto {
   @IsBoolean() isActive: boolean;
+}
+
+/** Form "Minta demo" di website Nofosys */
+class LeadDto {
+  @IsString() @MinLength(2) @MaxLength(80) name: string;
+  @IsString() @MinLength(2) @MaxLength(120) institution: string;
+  @Matches(/^[0-9+\-\s()]{8,20}$/, { message: 'Nomor WhatsApp tidak valid' }) phone: string;
+  @IsOptional() @ValidateIf((_, v) => v !== '') @IsEmail({}, { message: 'Email tidak valid' }) email?: string;
+  @IsOptional() @IsString() @MaxLength(60) city?: string;
+  @IsOptional() @IsString() @MaxLength(30) size?: string;
+  @IsOptional() @IsString() @MaxLength(1500) message?: string;
+  /** Jebakan bot — harus kosong */
+  @IsOptional() @IsString() website?: string;
+}
+
+class UpdateLeadDto {
+  @IsOptional() @IsEnum(LeadStatus) status?: LeadStatus;
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsString() @MaxLength(2000) note?: string | null;
 }
 
 // ---------------------------------------------------------------- auth
@@ -109,7 +127,44 @@ export class PlatformService {
     @InjectRepository(OrganizationDomain) private domains: Repository<OrganizationDomain>,
     @InjectRepository(User) private users: Repository<User>,
     @InjectRepository(Branch) private branches: Repository<Branch>,
+    @InjectRepository(PlatformLead) private leads: Repository<PlatformLead>,
   ) {}
+
+  // ----- permintaan demo
+
+  async submitLead(dto: LeadDto) {
+    if (dto.website) return { ok: true }; // bot
+    const phone = dto.phone.trim();
+    // Cegah kiriman ganda dalam 10 menit
+    const recent = await this.leads
+      .createQueryBuilder('l')
+      .where('l.phone = :phone AND l.createdAt > :since', { phone, since: new Date(Date.now() - 10 * 60_000) })
+      .getExists();
+    if (!recent) {
+      const { website: _w, ...rest } = dto;
+      await this.leads.save(this.leads.create({ ...rest, phone, email: dto.email || null, city: dto.city || null, size: dto.size || null, message: dto.message || null }));
+    }
+    return { ok: true };
+  }
+
+  listLeads(status?: string) {
+    return this.leads.find({
+      where: status && status in LeadStatus ? { status: status as LeadStatus } : {},
+      order: { createdAt: 'DESC' },
+      take: 200,
+    });
+  }
+
+  async leadCounts() {
+    const rows = await this.leads.createQueryBuilder('l').select('l.status', 'status').addSelect('COUNT(*)', 'n').groupBy('l.status').getRawMany();
+    return Object.fromEntries(rows.map((r) => [r.status, Number(r.n)])) as Partial<Record<LeadStatus, number>>;
+  }
+
+  async updateLead(id: string, dto: UpdateLeadDto) {
+    const r = await this.leads.update(id, clean(dto) as Partial<PlatformLead>);
+    if (!r.affected) throw new NotFoundException('Permintaan tidak ditemukan');
+    return this.leads.findOneBy({ id });
+  }
 
   private present(a: PlatformAdmin) {
     return { id: a.id, name: a.name, email: a.email, isActive: a.isActive, lastLoginAt: a.lastLoginAt, createdAt: a.createdAt };
@@ -177,7 +232,8 @@ export class PlatformService {
     ]);
     const since = new Date(Date.now() - 30 * 86400_000);
     const newOrgs = await this.orgs.createQueryBuilder('o').where('o.createdAt >= :since', { since }).getCount();
-    return { orgs, active, inactive: orgs - active, branches, students, staff, parents, newOrgs };
+    const newLeads = await this.leads.countBy({ status: LeadStatus.BARU });
+    return { orgs, active, inactive: orgs - active, branches, students, staff, parents, newOrgs, newLeads };
   }
 
   async list(q: { q?: string; status?: string }) {
@@ -307,6 +363,12 @@ export class PlatformAuthController {
     assertPlatformHost(req);
     return this.svc.login(dto);
   }
+
+  /** Publik: form "Minta demo" di website Nofosys */
+  @Post('leads') lead(@Req() req: TenantRequest, @Body() dto: LeadDto) {
+    assertPlatformHost(req);
+    return this.svc.submitLead(dto);
+  }
 }
 
 @Controller('platform')
@@ -350,6 +412,16 @@ export class PlatformController {
     return this.svc.resetOrgAdmin(id, userId);
   }
 
+  @Get('leads') leads(@Query('status') status?: string) {
+    return this.svc.listLeads(status);
+  }
+  @Get('leads/counts') leadCounts() {
+    return this.svc.leadCounts();
+  }
+  @Patch('leads/:id') updateLead(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateLeadDto) {
+    return this.svc.updateLead(id, dto);
+  }
+
   @Get('admins') admins() {
     return this.svc.listAdmins();
   }
@@ -363,7 +435,7 @@ export class PlatformController {
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([PlatformAdmin, Organization, OrganizationDomain, User, Branch]),
+    TypeOrmModule.forFeature([PlatformAdmin, PlatformLead, Organization, OrganizationDomain, User, Branch]),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (c: ConfigService) => ({ secret: c.get<string>('JWT_SECRET') || 'dev-secret' }),

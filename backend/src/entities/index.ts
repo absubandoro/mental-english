@@ -6,6 +6,7 @@ import { Enrollment } from './enrollment.entity';
 import { Mading } from './mading.entity';
 import { Organization, OrganizationDomain } from './organization.entity';
 import { PlatformAdmin } from './platform-admin.entity';
+import { LeadStatus, PlatformLead } from './platform-lead.entity';
 import { Notification, NotificationRecipient } from './notification.entity';
 import { Payment } from './payment.entity';
 import { Post } from './post.entity';
@@ -16,11 +17,11 @@ export * from './enums';
 export type { OrganizationPhotos } from './organization.entity';
 export type { AttendanceSummary, ExamSummary, SkillScore } from './progress-report.entity';
 export {
-  Organization, OrganizationDomain, PlatformAdmin, Branch, CalendarEvent, ClassRoom, ClassSchedule, Attendance, ClassSession, Enrollment, ExamResult, Mading, Notification, NotificationRecipient,
+  Organization, OrganizationDomain, PlatformAdmin, PlatformLead, LeadStatus, Branch, CalendarEvent, ClassRoom, ClassSchedule, Attendance, ClassSession, Enrollment, ExamResult, Mading, Notification, NotificationRecipient,
   Payment, Post, ProgressReport, User,
 };
 
 export const ENTITIES = [
-  Organization, OrganizationDomain, PlatformAdmin, Branch, User, Post, Mading, ClassRoom, ClassSchedule, ClassSession, Attendance, ExamResult, Payment, Notification, NotificationRecipient,
+  Organization, OrganizationDomain, PlatformAdmin, PlatformLead, Branch, User, Post, Mading, ClassRoom, ClassSchedule, ClassSession, Attendance, ExamResult, Payment, Notification, NotificationRecipient,
   CalendarEvent, ProgressReport, Enrollment,
 ];

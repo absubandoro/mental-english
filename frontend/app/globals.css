@@ -243,3 +243,42 @@ body {
     margin-bottom: 6px !important;
   }
 }
+
+/* ---------- Landing Nofosys ---------- */
+.nf-grid-bg {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 40%, transparent 100%);
+}
+.nf-text-gradient {
+  background: linear-gradient(100deg, #c4b5fd 0%, #a78bfa 30%, #67e8f9 75%, #a5f3fc 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: nf-shine 8s linear infinite;
+}
+@keyframes nf-shine { to { background-position: -200% center; } }
+.nf-float { animation: nf-float 7s ease-in-out infinite; }
+.nf-float-delay { animation: nf-float 7s ease-in-out -3.5s infinite; }
+@keyframes nf-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+.nf-marquee { animation: nf-marquee 40s linear infinite; }
+@keyframes nf-marquee { to { transform: translateX(-50%); } }
+.nf-glow { animation: nf-glow 6s ease-in-out infinite; }
+@keyframes nf-glow { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 0.85; transform: scale(1.06); } }
+.nf-border-glow {
+  position: relative;
+  background:
+    linear-gradient(var(--color-ink-900), var(--color-ink-900)) padding-box,
+    linear-gradient(135deg, rgb(139 92 246 / 0.7), rgb(34 211 238 / 0.5), rgb(255 255 255 / 0.06) 60%) border-box;
+  border: 1px solid transparent;
+}
+.nf-reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.nf-reveal.nf-in { opacity: 1; transform: none; }
+.nf-brand { transition: background-color 0.7s ease, color 0.7s ease, border-color 0.7s ease, box-shadow 0.7s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .nf-text-gradient, .nf-float, .nf-float-delay, .nf-marquee, .nf-glow { animation: none; }
+  .nf-reveal { opacity: 1; transform: none; transition: none; }
+}

@@ -161,7 +161,24 @@ export interface OrgDetail extends Omit<OrgRow, 'domains' | 'branches'> {
   admins: { id: string; name: string; email: string; isActive: boolean; createdAt: string }[];
 }
 
+export type LeadStatus = 'BARU' | 'DIHUBUNGI' | 'JADI_KLIEN' | 'TIDAK_LANJUT';
+
+export interface Lead {
+  id: string;
+  name: string;
+  institution: string;
+  phone: string;
+  email: string | null;
+  city: string | null;
+  size: string | null;
+  message: string | null;
+  status: LeadStatus;
+  note: string | null;
+  createdAt: string;
+}
+
 export interface PlatformStats {
+  newLeads: number;
   orgs: number;
   active: number;
   inactive: number;

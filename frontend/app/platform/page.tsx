@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, Building2, GraduationCap, Plus, School, UsersRound } from 'lucide-react';
+import { ArrowRight, Building2, GraduationCap, Inbox, Plus, School, UsersRound } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Button, ErrorBox, PageHeader, Spinner, Stat } from '@/components/ui';
@@ -36,6 +36,18 @@ export default function PlatformHome() {
           <Stat label="Pelajar aktif" value={s.students} icon={<GraduationCap className="size-5" />} tone="from-emerald-500/15" />
           <Stat label="Orang tua · staf" value={`${s.parents} · ${s.staff}`} icon={<UsersRound className="size-5" />} tone="from-amber-500/15" />
         </div>
+      )}
+      {!!s?.newLeads && (
+        <Link
+          href="/platform/permintaan"
+          className="mt-4 flex items-center gap-3 rounded-2xl bg-brand-500/10 px-4 py-3.5 text-sm text-brand-100 ring-1 ring-brand-400/30 transition hover:bg-brand-500/15"
+        >
+          <Inbox className="size-5 text-brand-300" />
+          <span className="flex-1">
+            <b>{s.newLeads} permintaan demo baru</b> dari website — segera hubungi calon klien.
+          </span>
+          <ArrowRight className="size-4" />
+        </Link>
       )}
 
       <div className="mt-8 mb-4 flex items-center justify-between">
