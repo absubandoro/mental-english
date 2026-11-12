@@ -129,5 +129,7 @@ Hierarki data: **Platform Nofosys → Organisasi (lembaga/klien) → Cabang → 
 
 ## Dokumentasi
 
-- [`docs/Mental-English-Gambaran-Sistem.pdf`](docs/Mental-English-Gambaran-Sistem.pdf): gambaran sistem untuk umum (tanpa pembahasan teknis), beserta screenshot.
-- [`docs/Mental-English-Penjelasan-Sistem.pdf`](docs/Mental-English-Penjelasan-Sistem.pdf): versi lengkap, termasuk arsitektur, keamanan, langkah berikutnya, dan akun demo.
+- [`docs/Nofosys-Presentasi.pdf`](docs/Nofosys-Presentasi.pdf): deck presentasi produk Nofosys untuk calon klien (contoh klien: Bimbel Kamu).
+- [`docs/Nofosys-Panduan-Penggunaan.pdf`](docs/Nofosys-Panduan-Penggunaan.pdf): panduan pengelola Nofosys — permintaan demo, membuat lembaga, domain, langganan & verifikasi pembayaran.
+- [`docs/Mental-English-Presentasi.pdf`](docs/Mental-English-Presentasi.pdf): deck presentasi sistem Mental English per peran, dengan screenshot komputer & HP.
+- [`docs/Mental-English-Panduan-Penggunaan.pdf`](docs/Mental-English-Panduan-Penggunaan.pdf): panduan langkah demi langkah P1–P13 untuk admin, keuangan, pengajar, orang tua, pelajar, dan Super Admin.
