@@ -281,7 +281,7 @@ export function PlatformLanding({ org }: { org: Org }) {
             </div>
           </Bento>
 
-          <Bento className="md:col-span-3" delay={0} icon={UserPlus} title="Pendaftaran siswa online" desc="Calon siswa mendaftar dari website. Admin menghubungi via WhatsApp, menerima, dan akun orang tua & pelajar dibuat otomatis.">
+          <Bento className="md:col-span-3" delay={0} icon={UserPlus} title="Pendaftaran siswa online" desc="Calon siswa mendaftar dari website. Admin meninjau dan menerima, lalu akun orang tua & pelajar dibuat otomatis.">
             <div className="flex items-center gap-2 text-xs">
               {['Isi formulir', 'Dihubungi', 'Diterima', 'Mulai belajar'].map((t, i) => (
                 <div key={t} className="flex flex-1 items-center gap-2">
@@ -342,7 +342,7 @@ export function PlatformLanding({ org }: { org: Org }) {
                 [Globe2, 'Domain sendiri', 'belajar.namalembaga.com atau subdomain gratis, lengkap HTTPS.'],
                 [Palette, 'Logo & warna', 'Diatur sendiri lewat menu Identitas Lembaga, berlaku seketika.'],
                 [Smartphone, 'Ikon aplikasi', 'Nama & ikon lembaga di layar utama HP orang tua.'],
-                [FileBadge, 'Kop rapor', 'Rapor dan preview link WhatsApp atas nama lembaga.'],
+                [FileBadge, 'Kop rapor', 'Rapor dan gambar preview saat link dibagikan, atas nama lembaga.'],
               ].map(([Icon, t, d], i) => {
                 const I = Icon as typeof Globe2;
                 return (
@@ -356,25 +356,35 @@ export function PlatformLanding({ org }: { org: Org }) {
             </div>
           </div>
 
-          {/* Visual: preview link WhatsApp + rapor */}
+          {/* Visual: website klien di domain sendiri + ikon aplikasi + kop rapor */}
           <Reveal delay={150} className="relative mx-auto w-full max-w-md">
-            <div className="nf-border-glow rounded-3xl p-5">
-              <div className="text-xs text-slate-500">Chat WhatsApp · Grup orang tua</div>
-              <div className="mt-3 ml-auto max-w-[88%] rounded-2xl rounded-tr-md bg-[#0f3d2e] p-2.5 text-sm text-emerald-50 shadow-lg">
-                <div className="overflow-hidden rounded-xl bg-[#0b2a20]">
-                  <div className="flex h-28 items-end bg-gradient-to-br from-[#3b82f6] via-[#1e3a8a] to-[#070a18] p-3">
-                    <div className="flex items-center gap-2">
-                      <span className="flex size-8 items-center justify-center rounded-full bg-[#3b82f6] text-[10px] font-bold text-white ring-2 ring-white/30">BK</span>
-                      <span className="font-condensed text-xl font-semibold tracking-wide text-white uppercase">Bimbel Kamu</span>
-                    </div>
-                  </div>
-                  <div className="p-2.5">
-                    <div className="text-[13px] font-semibold">Bimbel Kamu — Berani bicara, siap juara</div>
-                    <div className="mt-0.5 text-[11px] text-emerald-100/60">bimbelkamu.com</div>
-                  </div>
+            <div className="nf-border-glow overflow-hidden rounded-3xl">
+              <div className="flex items-center gap-2 border-b border-white/8 bg-white/[0.03] px-4 py-2.5">
+                <span className="size-2.5 rounded-full bg-rose-400/70" />
+                <span className="size-2.5 rounded-full bg-amber-300/70" />
+                <span className="size-2.5 rounded-full bg-emerald-400/70" />
+                <div className="mx-auto flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1 font-mono text-[11px] text-slate-300">
+                  <Lock className="size-3 text-emerald-300" /> bimbelkamu.com
                 </div>
-                <div className="mt-1.5 px-1">Rapor bulan ini sudah terbit ya Bapak/Ibu 🙏</div>
-                <div className="text-right text-[10px] text-emerald-100/50">19.02 ✓✓</div>
+              </div>
+              <div className="relative h-56 bg-gradient-to-br from-[#3b82f6] via-[#1e3a8a] to-[#070a18] p-5">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-8 items-center justify-center rounded-full bg-[#3b82f6] text-[10px] font-bold text-white ring-2 ring-white/30">BK</span>
+                  <span className="text-[10px] font-semibold tracking-[0.3em] text-white/90 uppercase">Bimbel Kamu</span>
+                </div>
+                <div className="absolute top-16 left-5">
+                  <p className="text-xs font-medium text-sky-200">Berani bicara, siap juara</p>
+                  <p className="mt-1 font-condensed text-4xl leading-[0.92] font-semibold text-white uppercase">
+                    Bimbel
+                    <br />
+                    Kamu
+                  </p>
+                </div>
+                {/* Ikon aplikasi di layar utama HP */}
+                <div className="nf-float absolute top-14 right-5 flex flex-col items-center gap-1.5 rounded-2xl bg-black/30 p-3 backdrop-blur">
+                  <span className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#60a5fa] to-[#1d4ed8] text-sm font-bold text-white shadow-lg">BK</span>
+                  <span className="text-[10px] text-white/80">Bimbel Kamu</span>
+                </div>
               </div>
             </div>
             <div className="nf-float-delay absolute -bottom-10 -left-4 w-56 rounded-2xl border border-white/10 bg-white p-3.5 text-slate-800 shadow-2xl sm:-left-10">
