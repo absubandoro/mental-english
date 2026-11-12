@@ -1,6 +1,6 @@
 import {
   ArrowRight, Bell, Building2, CalendarDays, Camera, Check, ChevronDown, CreditCard, FileBadge, Globe2, Layers, Lock, Mail, MessageCircle,
-  Newspaper, Palette, ReceiptText, School, ShieldCheck, Smartphone, Sparkles, UserPlus, Users, X,
+  Newspaper, Palette, ReceiptText, School, ShieldCheck, Smartphone, UserPlus, Users, X,
 } from 'lucide-react';
 import Link from 'next/link';
 import type { Org } from '@/lib/org';
@@ -50,19 +50,11 @@ const FAQ = [
   ['Berapa biayanya?', 'Biaya menyesuaikan jumlah siswa aktif dan cabang. Isi form demo di bawah, kami kirimkan penawaran yang pas untuk lembaga Anda.'],
 ];
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-violet-400/25 bg-violet-500/10 px-3 py-1 text-xs font-semibold tracking-wider text-violet-200 uppercase">
-      {children}
-    </span>
-  );
-}
-
-function SectionHead({ eyebrow, title, desc }: { eyebrow: string; title: React.ReactNode; desc?: string }) {
+/** Judul bagian (tanpa badge di atasnya) */
+function SectionHead({ title, desc }: { eyebrow?: string; title: React.ReactNode; desc?: string }) {
   return (
     <Reveal className="mx-auto max-w-3xl text-center">
-      <Eyebrow>{eyebrow}</Eyebrow>
-      <h2 className="mt-5 text-3xl leading-tight font-extrabold tracking-tight text-white sm:text-5xl">{title}</h2>
+      <h2 className="text-3xl leading-tight font-extrabold tracking-tight text-white sm:text-5xl">{title}</h2>
       {desc && <p className="mt-4 text-base text-slate-400 sm:text-lg">{desc}</p>}
     </Reveal>
   );
@@ -102,12 +94,7 @@ export function PlatformLanding({ org }: { org: Org }) {
         <div className="relative mx-auto grid max-w-7xl items-center gap-16 px-4 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
           <div>
             <Reveal>
-              <Eyebrow>
-                <Sparkles className="size-3.5" /> White-label untuk kursus, bimbel & les
-              </Eyebrow>
-            </Reveal>
-            <Reveal delay={80}>
-              <h1 className="mt-6 text-[42px] leading-[1.05] font-extrabold tracking-tight text-white sm:text-6xl xl:text-7xl">
+              <h1 className="text-[42px] leading-[1.05] font-extrabold tracking-tight text-white sm:text-6xl xl:text-7xl">
                 Sistem lembaga belajar lengkap, <span className="nf-text-gradient">atas nama lembaga Anda.</span>
               </h1>
             </Reveal>
@@ -280,7 +267,7 @@ export function PlatformLanding({ org }: { org: Org }) {
           <Bento className="md:col-span-2" delay={160} icon={Smartphone} title="Terasa seperti aplikasi" desc="Dipasang ke layar utama HP — ikon & nama lembaga Anda, tanpa Play Store.">
             <div className="flex justify-center gap-3">
               {[
-                ['KB', '#3b82f6', 'Kursus Budi'],
+                ['BK', '#3b82f6', 'Bimbel Kamu'],
                 ['BB', '#10b981', 'Bimbel B…'],
                 ['HM', '#ec4899', 'Harmoni'],
               ].map(([s, c, n]) => (
@@ -343,8 +330,7 @@ export function PlatformLanding({ org }: { org: Org }) {
         <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 sm:px-8 lg:grid-cols-2">
           <div>
             <Reveal>
-              <Eyebrow>White-label</Eyebrow>
-              <h2 className="mt-5 text-3xl leading-tight font-extrabold tracking-tight text-white sm:text-5xl">
+              <h2 className="text-3xl leading-tight font-extrabold tracking-tight text-white sm:text-5xl">
                 Merek Anda di depan. <span className="nf-text-gradient">Kami di belakang layar.</span>
               </h2>
               <p className="mt-5 text-base text-slate-400 sm:text-lg">
@@ -378,13 +364,13 @@ export function PlatformLanding({ org }: { org: Org }) {
                 <div className="overflow-hidden rounded-xl bg-[#0b2a20]">
                   <div className="flex h-28 items-end bg-gradient-to-br from-[#3b82f6] via-[#1e3a8a] to-[#070a18] p-3">
                     <div className="flex items-center gap-2">
-                      <span className="flex size-8 items-center justify-center rounded-full bg-[#3b82f6] text-[10px] font-bold text-white ring-2 ring-white/30">KB</span>
-                      <span className="font-condensed text-xl font-semibold tracking-wide text-white uppercase">Kursus Budi</span>
+                      <span className="flex size-8 items-center justify-center rounded-full bg-[#3b82f6] text-[10px] font-bold text-white ring-2 ring-white/30">BK</span>
+                      <span className="font-condensed text-xl font-semibold tracking-wide text-white uppercase">Bimbel Kamu</span>
                     </div>
                   </div>
                   <div className="p-2.5">
-                    <div className="text-[13px] font-semibold">Kursus Budi — Berani bicara, siap juara</div>
-                    <div className="mt-0.5 text-[11px] text-emerald-100/60">kursusbudi.com</div>
+                    <div className="text-[13px] font-semibold">Bimbel Kamu — Berani bicara, siap juara</div>
+                    <div className="mt-0.5 text-[11px] text-emerald-100/60">bimbelkamu.com</div>
                   </div>
                 </div>
                 <div className="mt-1.5 px-1">Rapor bulan ini sudah terbit ya Bapak/Ibu 🙏</div>
@@ -393,9 +379,9 @@ export function PlatformLanding({ org }: { org: Org }) {
             </div>
             <div className="nf-float-delay absolute -bottom-10 -left-4 w-56 rounded-2xl border border-white/10 bg-white p-3.5 text-slate-800 shadow-2xl sm:-left-10">
               <div className="flex items-center gap-2 border-b-2 border-[#1e3a8a] pb-2">
-                <span className="flex size-7 items-center justify-center rounded-full bg-[#3b82f6] text-[9px] font-bold text-white">KB</span>
+                <span className="flex size-7 items-center justify-center rounded-full bg-[#3b82f6] text-[9px] font-bold text-white">BK</span>
                 <div>
-                  <div className="text-[8px] font-semibold tracking-widest text-[#3b82f6] uppercase">Rapor · Kursus Budi</div>
+                  <div className="text-[8px] font-semibold tracking-widest text-[#3b82f6] uppercase">Rapor · Bimbel Kamu</div>
                   <div className="text-[11px] font-bold">Laporan Perkembangan</div>
                 </div>
                 <span className="ml-auto text-xl font-extrabold text-[#1e3a8a]">A</span>
@@ -492,8 +478,7 @@ export function PlatformLanding({ org }: { org: Org }) {
           <div aria-hidden className="absolute -right-20 -bottom-40 size-[420px] rounded-full bg-cyan-500/20 blur-[110px]" />
           <div className="relative grid gap-10 p-7 sm:p-12 lg:grid-cols-[0.9fr_1.1fr]">
             <div>
-              <Eyebrow>Demo gratis</Eyebrow>
-              <h2 className="mt-5 text-3xl leading-tight font-extrabold tracking-tight text-white sm:text-5xl">
+              <h2 className="text-3xl leading-tight font-extrabold tracking-tight text-white sm:text-5xl">
                 Siap punya sistem <span className="nf-text-gradient">atas nama sendiri?</span>
               </h2>
               <p className="mt-4 text-slate-400">Isi form, kami hubungi lewat WhatsApp untuk menjadwalkan demo dan menyiapkan contoh lembaga Anda.</p>

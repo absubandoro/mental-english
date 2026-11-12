@@ -66,7 +66,7 @@ export async function createOrganization(ds: DataSource, input: NewOrganization)
   });
 }
 
-/** Daftarkan domain kustom (mis. belajar.kursusbudi.com) ke lembaga */
+/** Daftarkan domain kustom (mis. belajar.bimbelkamu.com) ke lembaga */
 export async function addDomain(db: EntityManager | DataSource, organizationId: string, raw: string) {
   const m = db instanceof DataSource ? db.manager : db;
   const domain = normalizeHost(raw.replace(/^https?:\/\//, '').split('/')[0]);

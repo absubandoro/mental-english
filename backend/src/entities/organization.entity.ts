@@ -31,13 +31,17 @@ export class Organization {
   @Column({ type: 'text', nullable: true, select: false }) notes: string | null;
   // ---- Langganan Nofosys (tagihan sistem ke lembaga) ----
   @Column({ default: false }) subscriptionEnabled: boolean;
+  /** Siklus tagihan: MONTHLY (bulanan) atau YEARLY (tahunan) */
+  @Column({ type: 'varchar', length: 10, default: 'MONTHLY' }) billingCycle: 'MONTHLY' | 'YEARLY';
   @Column({ type: 'varchar', nullable: true }) planName: string | null;
-  /** Biaya tetap per bulan (Rp) */
+  /** Biaya tetap per siklus — per bulan / per tahun (Rp) */
   @Column({ type: 'integer', default: 0 }) baseFee: number;
-  /** Biaya per pelajar aktif per bulan (Rp) */
+  /** Biaya per pelajar aktif per siklus (Rp) */
   @Column({ type: 'integer', default: 0 }) perStudentFee: number;
-  /** Tanggal jatuh tempo setiap bulan (1–28) */
+  /** Tanggal jatuh tempo (1–28) */
   @Column({ type: 'smallint', default: 10 }) dueDay: number;
+  /** Bulan jatuh tempo untuk siklus tahunan (1–12) */
+  @Column({ type: 'smallint', default: 1 }) dueMonth: number;
   /** Tagihan terbit N hari sebelum jatuh tempo */
   @Column({ type: 'smallint', default: 7 }) invoiceLeadDays: number;
   /** Periode pertama yang ditagih (YYYY-MM) */
@@ -50,7 +54,7 @@ export class Organization {
   @UpdateDateColumn() updatedAt: Date;
 }
 
-/** Domain kustom milik organisasi, mis. belajar.kursusbudi.com */
+/** Domain kustom milik organisasi, mis. belajar.bimbelkamu.com */
 @Entity('organization_domains')
 export class OrganizationDomain {
   @PrimaryGeneratedColumn('uuid') id: string;

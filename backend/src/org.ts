@@ -2,14 +2,14 @@
  * Kelola lembaga (klien) Nofosys dari terminal server. Hal yang sama bisa dilakukan lewat panel /platform.
  *
  *   node dist/org.js daftar
- *   node dist/org.js tambah --slug kursus-budi --nama "Kursus Budi" --email superadmin@kursusbudi.com \
- *        [--cabang "Kursus Budi Pusat"] [--kota Depok] [--warna "#16a34a"] [--domain belajar.kursusbudi.com]
- *   node dist/org.js domain-tambah --slug kursus-budi --domain belajar.kursusbudi.com
- *   node dist/org.js domain-hapus  --domain belajar.kursusbudi.com
- *   node dist/org.js nonaktif --slug kursus-budi      (website & login ditutup)
+ *   node dist/org.js tambah --slug bimbel-kamu --nama "Bimbel Kamu" --email superadmin@bimbelkamu.com \
+ *        [--cabang "Bimbel Kamu Pusat"] [--kota Depok] [--warna "#16a34a"] [--domain belajar.bimbelkamu.com]
+ *   node dist/org.js domain-tambah --slug bimbel-kamu --domain belajar.bimbelkamu.com
+ *   node dist/org.js domain-hapus  --domain belajar.bimbelkamu.com
+ *   node dist/org.js nonaktif --slug bimbel-kamu      (website & login ditutup)
  *   node dist/org.js pengelola --email anda@nofosys.id [--nama "Nama"] [--password ...]
  *        (buat akun pengelola platform / reset password-nya — untuk panel /platform)
- *   node dist/org.js aktif    --slug kursus-budi
+ *   node dist/org.js aktif    --slug bimbel-kamu
  *
  * Saat pengembangan: npx ts-node src/org.ts <perintah> ...
  * Catatan: API menyimpan cache domain 1 menit — perubahan domain/status berlaku paling lambat 1 menit.

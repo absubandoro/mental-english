@@ -128,7 +128,7 @@ export function CreateOrgModal({ open, onClose, onCreated }: { open: boolean; on
               minLength={2}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value, ...(slugTouched ? {} : { slug: slugify(e.target.value) }) })}
-              placeholder="mis. Kursus Budi"
+              placeholder="mis. Bimbel Kamu"
             />
           </Field>
           <Field label="Slug (alamat subdomain)" hint={`Website: ${form.slug || 'slug'}.<domain platform>`}>
@@ -152,7 +152,7 @@ export function CreateOrgModal({ open, onClose, onCreated }: { open: boolean; on
           <Field label="Kota (opsional)">
             <input className="input" value={form.city} onChange={set('city')} />
           </Field>
-          <Field label="Domain sendiri (opsional)" hint="mis. belajar.kursusbudi.com — bisa ditambahkan nanti">
+          <Field label="Domain sendiri (opsional)" hint="mis. belajar.bimbelkamu.com — bisa ditambahkan nanti">
             <input className="input font-mono" value={form.domain} onChange={set('domain')} />
           </Field>
           <div>

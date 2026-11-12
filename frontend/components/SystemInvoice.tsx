@@ -33,7 +33,14 @@ export interface BankAccount {
 }
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-export const periodName = (p: string) => `${MONTHS[Number(p.slice(5, 7)) - 1]} ${p.slice(0, 4)}`;
+export const MONTH_NAMES = MONTHS;
+/** "2026-11" → "November 2026"; tahunan "2027" → "Tahun 2027" */
+export const periodName = (p: string) => (p.length === 4 ? `Tahun ${p}` : `${MONTHS[Number(p.slice(5, 7)) - 1]} ${p.slice(0, 4)}`);
+
+/** "Tanggal 15 setiap bulan" / "15 Januari setiap tahun" */
+export function dueText(s: { billingCycle: 'MONTHLY' | 'YEARLY'; dueDay: number; dueMonth: number }) {
+  return s.billingCycle === 'YEARLY' ? `${s.dueDay} ${MONTHS[s.dueMonth - 1]} setiap tahun` : `Tanggal ${s.dueDay} setiap bulan`;
+}
 
 /** Status untuk ditampilkan — termasuk "Terlambat" bila belum bayar & lewat jatuh tempo */
 export function invoiceState(inv: Pick<SystemInvoice, 'status' | 'dueDate'>, today: string): { label: string; tone: BadgeTone } {
@@ -112,6 +119,8 @@ export function InvoiceDetail({ inv, today }: { inv: SystemInvoice; today: strin
 export interface SubscriptionInfo {
   platformName: string;
   enabled: boolean;
+  billingCycle: 'MONTHLY' | 'YEARLY';
+  dueMonth: number;
   planName: string | null;
   baseFee: number;
   perStudentFee: number;

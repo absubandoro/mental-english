@@ -15,7 +15,15 @@ import { addDays, clean, rupiah, todayLocal } from '../common/util';
 import { NotificationsModule, NotificationsService } from '../notifications/notifications';
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-export const periodLabel = (p: string) => `${MONTHS[Number(p.slice(5, 7)) - 1]} ${p.slice(0, 4)}`;
+/** Periode bulanan "YYYY-MM" → "November 2026"; tahunan "YYYY" → "Tahun 2027" */
+export const periodLabel = (p: string) => (p.length === 4 ? `Tahun ${p}` : `${MONTHS[Number(p.slice(5, 7)) - 1]} ${p.slice(0, 4)}`);
+const pad = (n: number) => String(n).padStart(2, '0');
+type Cycle = Pick<Organization, 'billingCycle' | 'dueDay' | 'dueMonth'>;
+/** Tanggal jatuh tempo untuk satu periode */
+const dueDateOf = (o: Cycle, p: string) => (o.billingCycle === 'YEARLY' ? `${p}-${pad(o.dueMonth)}-${pad(o.dueDay)}` : `${p}-${pad(o.dueDay)}`);
+/** Periode berjalan & berikutnya */
+const periodsAround = (o: Cycle, today: string) =>
+  o.billingCycle === 'YEARLY' ? [today.slice(0, 4), String(Number(today.slice(0, 4)) + 1)] : [today.slice(0, 7), nextPeriod(today.slice(0, 7))];
 const fmtDate = (d: string) => `${Number(d.slice(8, 10))} ${MONTHS[Number(d.slice(5, 7)) - 1]} ${d.slice(0, 4)}`;
 const nextPeriod = (p: string) => {
   const y = Number(p.slice(0, 4));
@@ -23,16 +31,19 @@ const nextPeriod = (p: string) => {
   return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`;
 };
 const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
+const PERIOD_ANY = /^\d{4}(-(0[1-9]|1[0-2]))?$/;
 
 // ---------------------------------------------------------------- DTO
 
 export class SubscriptionDto {
   @IsOptional() @IsBoolean() subscriptionEnabled?: boolean;
+  @IsOptional() @IsIn(['MONTHLY', 'YEARLY']) billingCycle?: 'MONTHLY' | 'YEARLY';
+  @IsOptional() @IsInt() @Min(1) @Max(12) dueMonth?: number;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsString() @MaxLength(60) planName?: string | null;
   @IsOptional() @IsInt() @Min(0) baseFee?: number;
   @IsOptional() @IsInt() @Min(0) perStudentFee?: number;
   @IsOptional() @IsInt() @Min(1) @Max(28) dueDay?: number;
-  @IsOptional() @IsInt() @Min(0) @Max(25) invoiceLeadDays?: number;
+  @IsOptional() @IsInt() @Min(0) @Max(60) invoiceLeadDays?: number;
   @IsOptional() @ValidateIf((_, v) => v !== null) @Matches(PERIOD, { message: 'Periode mulai harus format YYYY-MM' }) subscriptionStart?: string | null;
 }
 
@@ -48,7 +59,8 @@ export class BillingSettingsDto {
 }
 
 export class GenerateInvoiceDto {
-  @IsOptional() @Matches(PERIOD, { message: 'Periode harus format YYYY-MM' }) period?: string;
+  /** YYYY-MM (bulanan) atau YYYY (tahunan) */
+  @IsOptional() @Matches(PERIOD_ANY, { message: 'Periode harus format YYYY-MM (bulanan) atau YYYY (tahunan)' }) period?: string;
 }
 
 export class VerifyInvoiceDto {
@@ -128,12 +140,13 @@ export class SubscriptionsService {
   }
 
   async estimate(o: Organization) {
-    const items = await this.buildItems(o, todayLocal().slice(0, 7));
+    const items = await this.buildItems(o, periodsAround(o, todayLocal())[0]);
     return { activeStudents: await this.activeStudents(o.id), amount: items.reduce((s, i) => s + i.amount, 0) };
   }
 
   private async nextNumber(period: string) {
     const n = await this.invoices.countBy({ period });
+    // Bulanan: NFS-202611-0001 · Tahunan: NFS-2027-0001
     return `NFS-${period.replace('-', '')}-${String(n + 1).padStart(4, '0')}`;
   }
 
@@ -160,7 +173,7 @@ export class SubscriptionsService {
       return null;
     }
     const today = todayLocal();
-    let dueDate = `${period}-${String(o.dueDay).padStart(2, '0')}`;
+    let dueDate = dueDateOf(o, period);
     if (dueDate < today) dueDate = addDays(today, Math.max(3, o.invoiceLeadDays));
     for (let attempt = 0; ; attempt++) {
       try {
@@ -184,10 +197,12 @@ export class SubscriptionsService {
     const o = await this.orgs.findOneBy({ id: orgId });
     if (!o) throw new NotFoundException('Lembaga tidak ditemukan');
     const today = todayLocal();
+    const yearly = o.billingCycle === 'YEARLY';
     let p = period;
+    if (p && p.length !== (yearly ? 4 : 7)) throw new BadRequestException(yearly ? 'Siklus tahunan: periode berupa tahun (YYYY)' : 'Siklus bulanan: periode berupa bulan (YYYY-MM)');
     if (!p) {
-      const cur = today.slice(0, 7);
-      p = `${cur}-${String(o.dueDay).padStart(2, '0')}` >= today ? cur : nextPeriod(cur);
+      const [cur, next] = periodsAround(o, today);
+      p = dueDateOf(o, cur) >= today ? cur : next;
     }
     return this.createInvoice(o, p, { manual: true });
   }
@@ -195,13 +210,13 @@ export class SubscriptionsService {
   /** Harian: terbitkan tagihan yang sudah masuk jendela terbit, kirim pengingat */
   async runDaily() {
     const today = todayLocal();
-    const cur = today.slice(0, 7);
     const orgs = await this.orgs.find({ where: { subscriptionEnabled: true, isActive: true } });
     let created = 0;
     for (const o of orgs) {
-      for (const p of [cur, nextPeriod(cur)]) {
-        if (o.subscriptionStart && p < o.subscriptionStart) continue;
-        const due = `${p}-${String(o.dueDay).padStart(2, '0')}`;
+      for (const p of periodsAround(o, today)) {
+        // Periode mulai (YYYY-MM): tahunan dibandingkan per tahun
+        if (o.subscriptionStart && p < o.subscriptionStart.slice(0, p.length)) continue;
+        const due = dueDateOf(o, p);
         // Hanya periode yang jatuh temponya belum lewat & sudah masuk jendela terbit (H-invoiceLeadDays)
         if (due < today || addDays(due, -o.invoiceLeadDays) > today) continue;
         if (await this.createInvoice(o, p)) created++;
@@ -298,6 +313,8 @@ export class SubscriptionsService {
     return {
       platformName: PLATFORM_NAME,
       enabled: o.subscriptionEnabled,
+      billingCycle: o.billingCycle,
+      dueMonth: o.dueMonth,
       planName: o.planName,
       baseFee: o.baseFee,
       perStudentFee: o.perStudentFee,

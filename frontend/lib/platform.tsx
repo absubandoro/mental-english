@@ -155,6 +155,8 @@ export interface OrgRow {
 export interface OrgDetail extends Omit<OrgRow, 'domains' | 'branches'> {
   tagline: string | null;
   subscriptionEnabled: boolean;
+  billingCycle: 'MONTHLY' | 'YEARLY';
+  dueMonth: number;
   planName: string | null;
   baseFee: number;
   perStudentFee: number;

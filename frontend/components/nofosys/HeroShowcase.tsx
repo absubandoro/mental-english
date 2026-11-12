@@ -12,9 +12,9 @@ import { useEffect, useState } from "react";
 
 const BRANDS = [
   {
-    name: "Kursus Budi",
-    short: "KB",
-    domain: "kursusbudi.com",
+    name: "Bimbel Kamu",
+    short: "BK",
+    domain: "bimbelkamu.com",
     color: "#3b82f6",
     soft: "#93c5fd",
     tagline: "Berani bicara, siap juara",

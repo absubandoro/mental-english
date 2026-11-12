@@ -96,7 +96,7 @@ Peran baru, terkunci per cabang: **verifikasi bukti pembayaran** (terima / tolak
 Hierarki data: **Platform Nofosys → Organisasi (lembaga/klien) → Cabang → User, kelas, tagihan, blog, mading, rapor, dst.** Mental English adalah organisasi pertama.
 
 - **Domain platform** (`PLATFORM_DOMAIN`, `www.`, `platform.`; lokal: `platform.localhost`) menampilkan **landing page Nofosys** (hero dengan mockup yang berganti merek, fitur, white-label, peran, FAQ, dan form *Minta demo* yang masuk ke menu **Permintaan Demo** di panel) serta **panel pengelola** `/platform`: daftar lembaga & statistik, buat lembaga baru (website + Super Admin langsung aktif), domain kustom, aktif/nonaktif, reset password Super Admin lembaga, catatan internal, dan akun pengelola. Akun pengelola terpisah dari akun lembaga (tabel `platform_admins`, token khusus yang hanya berlaku di domain platform).
-- **Tagihan langganan sistem**: pengelola mengatur paket, biaya (tetap + per pelajar aktif), dan tanggal jatuh tempo per lembaga. Tagihan terbit otomatis (06.10 WIB) ke menu **Langganan Sistem** Super Admin lembaga (banner di Ringkasan + notifikasi H-3 & terlambat); lembaga mengunggah bukti transfer, pengelola memverifikasi di panel **Tagihan Langganan**.
+- **Tagihan langganan sistem**: pengelola mengatur paket, siklus **bulanan atau tahunan**, biaya (tetap + per pelajar aktif), dan tanggal jatuh tempo per lembaga. Tagihan terbit otomatis (06.10 WIB) ke menu **Langganan Sistem** Super Admin lembaga (banner di Ringkasan + notifikasi H-3 & terlambat); lembaga mengunggah bukti transfer, pengelola memverifikasi di panel **Tagihan Langganan**.
 - **Organisasi dikenali dari domain yang dibuka**, berurutan: `<slug>.PLATFORM_DOMAIN` (mis. `mental-english.nofosys.id`) → `<slug>.localhost` (lokal) → domain kustom terdaftar (mis. `mentalenglish.id`) → `DEFAULT_ORG` (cadangan, mis. untuk `localhost`).
   Website mengirim header `X-Tenant-Host`; di server, Nginx meneruskan `Host` asli.
 - **Login hanya mencari akun di organisasi domain tersebut**; email yang sama boleh terdaftar di dua lembaga. Token login ditolak bila dipakai di domain lembaga lain.
@@ -105,9 +105,9 @@ Hierarki data: **Platform Nofosys → Organisasi (lembaga/klien) → Cabang → 
 - **Kelola organisasi** lewat panel, atau dari terminal server (lihat DEPLOY.md):
   ```bash
   node dist/org.js daftar
-  node dist/org.js tambah --slug kursus-budi --nama "Kursus Budi" --email superadmin@kursusbudi.com [--domain belajar.kursusbudi.com] [--warna "#16a34a"]
-  node dist/org.js domain-tambah --slug kursus-budi --domain belajar.kursusbudi.com
-  node dist/org.js nonaktif --slug kursus-budi
+  node dist/org.js tambah --slug bimbel-kamu --nama "Bimbel Kamu" --email superadmin@bimbelkamu.com [--domain belajar.bimbelkamu.com] [--warna "#16a34a"]
+  node dist/org.js domain-tambah --slug bimbel-kamu --domain belajar.bimbelkamu.com
+  node dist/org.js nonaktif --slug bimbel-kamu
   node dist/org.js pengelola --email anda@nofosys.id   # akun pengelola platform / reset password
   ```
   Lokal: `npm run org -- daftar`.

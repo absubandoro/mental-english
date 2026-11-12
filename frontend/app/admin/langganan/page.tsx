@@ -2,7 +2,7 @@
 
 import { CalendarClock, Copy, CreditCard, ReceiptText, Upload } from 'lucide-react';
 import { useState } from 'react';
-import { InvoiceBadge, InvoiceDetail, periodName, type SubscriptionInfo, type SystemInvoice } from '@/components/SystemInvoice';
+import { dueText, InvoiceBadge, InvoiceDetail, periodName, type SubscriptionInfo, type SystemInvoice } from '@/components/SystemInvoice';
 import { Button, Empty, ErrorBox, Field, Modal, PageHeader, Spinner } from '@/components/ui';
 import { api, uploadFile } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -41,7 +41,7 @@ export default function LanggananSistem() {
           {data.enabled ? (
             <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
               <div className="rounded-xl bg-white/[0.03] px-3 py-2.5">
-                <div className="text-xs text-slate-500">Biaya per bulan</div>
+                <div className="text-xs text-slate-500">Biaya per {data.billingCycle === 'YEARLY' ? 'tahun' : 'bulan'}</div>
                 <div className="text-white">
                   {data.baseFee > 0 && rupiah(data.baseFee)}
                   {data.baseFee > 0 && data.perStudentFee > 0 && ' + '}
@@ -51,11 +51,11 @@ export default function LanggananSistem() {
               <div className="rounded-xl bg-white/[0.03] px-3 py-2.5">
                 <div className="text-xs text-slate-500">Jatuh tempo</div>
                 <div className="flex items-center gap-1.5 text-white">
-                  <CalendarClock className="size-4 text-brand-300" /> Tanggal {data.dueDay} setiap bulan
+                  <CalendarClock className="size-4 text-brand-300" /> {dueText(data)}
                 </div>
               </div>
               <div className="rounded-xl bg-white/[0.03] px-3 py-2.5">
-                <div className="text-xs text-slate-500">Perkiraan bulan ini</div>
+                <div className="text-xs text-slate-500">Perkiraan tagihan {data.billingCycle === 'YEARLY' ? 'tahun ini' : 'bulan ini'}</div>
                 <div className="text-white">
                   {rupiah(data.amount)} <span className="text-xs text-slate-500">({data.activeStudents} pelajar aktif)</span>
                 </div>

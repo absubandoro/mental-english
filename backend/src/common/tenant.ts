@@ -41,7 +41,7 @@ export function orgUrls(slug: string, domains: string[] = []): string[] {
 
 /**
  * Menentukan organisasi (klien) dari domain:
- * 1. <slug>.PLATFORM_DOMAIN  (mis. budi.produkanda.id)
+ * 1. <slug>.PLATFORM_DOMAIN  (mis. bimbel-kamu.nofosys.id)
  * 2. <slug>.localhost        (pengembangan lokal)
  * 3. domain kustom terdaftar (organization_domains)
  * 4. DEFAULT_ORG (slug) — untuk instalasi satu lembaga / localhost

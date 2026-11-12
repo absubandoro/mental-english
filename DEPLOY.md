@@ -192,7 +192,7 @@ Semua dilakukan di **panel pengelola** `https://nofosys.id/platform`:
 - **Lembaga baru** — isi nama, slug, dan email pemilik. Website langsung aktif di `https://<slug>.nofosys.id` beserta akun Super Admin dan password awal (salin & kirim ke klien). Klien login, mengganti password, lalu mengisi **Identitas Lembaga** (logo, warna, foto, kontak).
 - **Nonaktifkan / aktifkan** — menutup website & login lembaga (mis. langganan berakhir) tanpa menghapus data.
 - **Reset password** Super Admin lembaga, tambah Super Admin, ubah nama/slug, catatan internal.
-- **Langganan & tagihan sistem** (di detail lembaga) — nama paket, biaya tetap/bulan, biaya per pelajar aktif, **tanggal jatuh tempo** tiap bulan, dan berapa hari sebelumnya tagihan terbit. Tagihan terbit otomatis setiap hari pukul 06.10 WIB (atau tombol *Terbitkan sekarang*), muncul di menu **Langganan Sistem** milik Super Admin lembaga, dengan pengingat H-3 dan saat lewat jatuh tempo.
+- **Langganan & tagihan sistem** (di detail lembaga) — siklus **bulanan atau tahunan**, nama paket, biaya tetap, biaya per pelajar aktif, **tanggal jatuh tempo** (tiap bulan, atau tanggal & bulan tiap tahun), dan berapa hari sebelumnya tagihan terbit. Tagihan terbit otomatis setiap hari pukul 06.10 WIB (atau tombol *Terbitkan sekarang*), muncul di menu **Langganan Sistem** milik Super Admin lembaga, dengan pengingat H-3 dan saat lewat jatuh tempo.
 - **Tagihan Langganan** — verifikasi bukti transfer dari lembaga (terima / tolak dengan alasan), tandai lunas manual, batalkan, dan atur **rekening pembayaran** Nofosys.
 - **Pengelola & Akun** — tambah rekan pengelola platform, ganti password sendiri.
 
@@ -201,8 +201,8 @@ Perintah yang sama tersedia lewat terminal (mis. bila lupa password pengelola):
 ```bash
 cd /var/www/nofosys/backend
 node dist/org.js daftar
-node dist/org.js tambah --slug kursus-budi --nama "Kursus Budi" --email superadmin@kursusbudi.com
-node dist/org.js nonaktif --slug kursus-budi
+node dist/org.js tambah --slug bimbel-kamu --nama "Bimbel Kamu" --email superadmin@bimbelkamu.com
+node dist/org.js nonaktif --slug bimbel-kamu
 node dist/org.js pengelola --email anda@nofosys.id        # buat pengelola / reset password-nya
 ```
 
@@ -211,7 +211,7 @@ node dist/org.js pengelola --email anda@nofosys.id        # buat pengelola / res
 1. Di panel → buka lembaga → **Alamat website** → tambahkan `mentalenglish.id`.
 2. Klien mengarahkan domainnya ke server, di panel domain mereka:
    - domain utama (`mentalenglish.id`): `A @ → IP VPS`
-   - subdomain (`belajar.kursusbudi.com`): `CNAME belajar → nofosys.id`
+   - subdomain (`belajar.bimbelkamu.com`): `CNAME belajar → nofosys.id`
 3. Di server, tambahkan domain itu ke `server_name` blok port 80 di `/etc/nginx/sites-available/nofosys`, lalu:
    ```bash
    sudo nginx -t && sudo systemctl reload nginx
