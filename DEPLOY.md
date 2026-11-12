@@ -13,7 +13,7 @@ Internet ──► Nginx (80/443, HTTPS Let's Encrypt)
 
 Lembaga dikenali dari **domain yang dibuka**. Semua lembaga memakai aplikasi, database, dan server yang sama, dengan data, akun, dan tampilan yang terpisah.
 
-File yang dipakai: `ecosystem.config.js` (PM2), `deploy/nginx.conf`, `backend/.env.production.example`, `frontend/.env.production.example`, `deploy/backup.sh`, `deploy/update.sh`.
+File yang dipakai: `ecosystem.config.js` (PM2), `deploy/nginx.conf` + `deploy/nginx-proxy.conf` (platform), `deploy/nginx-klien.conf` (domain klien), `backend/.env.production.example`, `frontend/.env.production.example`, `deploy/backup.sh`, `deploy/update.sh`.
 
 Contoh di panduan ini memakai domain platform **`nofosys.id`**, domain klien **`mentalenglish.id`**, dan folder **`/var/www/nofosys`** — ganti sesuai milik Anda.
 
@@ -143,39 +143,45 @@ pm2 install pm2-logrotate   # log tidak memenuhi disk
 
 Cek: `pm2 status` → `nofosys-api` dan `nofosys-web` harus **online**.
 
-## 9. Nginx
+## 9. Sertifikat HTTPS wildcard (`nofosys.id` + `*.nofosys.id`)
+
+Satu sertifikat wildcard berlaku untuk domain platform dan **semua** subdomain klien, jadi klien baru tidak perlu sertifikat tambahan. Let's Encrypt mewajibkan verifikasi lewat **DNS** untuk wildcard. Pilih salah satu:
+
+**A. Disarankan — DNS di Cloudflare (gratis, perpanjangan otomatis)**
+
+1. Pindahkan DNS domain ke Cloudflare (daftar di cloudflare.com → tambah domain → ganti nameserver di tempat beli domain). Buat record `A @` dan `A *` ke IP VPS dengan awan **abu-abu (DNS only)**.
+2. Di Cloudflare: *My Profile → API Tokens → Create Token → template "Edit zone DNS"* → pilih zona `nofosys.id` → salin token.
+3. Di VPS:
+   ```bash
+   sudo apt install -y python3-certbot-dns-cloudflare
+   sudo mkdir -p /root/.secrets
+   echo "dns_cloudflare_api_token = TOKEN_ANDA" | sudo tee /root/.secrets/cloudflare.ini
+   sudo chmod 600 /root/.secrets/cloudflare.ini
+   sudo certbot certonly --dns-cloudflare --dns-cloudflare-credentials /root/.secrets/cloudflare.ini \
+     -d nofosys.id -d '*.nofosys.id' --deploy-hook "systemctl reload nginx"
+   ```
+   Perpanjangan berjalan otomatis (cek: `sudo certbot renew --dry-run`).
+
+**B. Manual (tanpa Cloudflare)**
 
 ```bash
+sudo certbot certonly --manual --preferred-challenges dns -d nofosys.id -d '*.nofosys.id'
+```
+Certbot meminta Anda menambahkan record **TXT `_acme-challenge`** di panel domain (bisa diminta dua kali); tunggu ±1 menit sebelum menekan Enter.
+> ⚠️ Cara manual **tidak** diperpanjang otomatis — ulangi perintah ini sebelum 90 hari, lalu `sudo systemctl reload nginx`.
+
+## 10. Nginx
+
+```bash
+sudo cp deploy/nginx-proxy.conf /etc/nginx/snippets/nofosys-proxy.conf
 sudo cp deploy/nginx.conf /etc/nginx/sites-available/nofosys
-sudo nano /etc/nginx/sites-available/nofosys     # ganti nofosys.id dengan domain platform Anda
+sudo sed -i 's/nofosys\.id/DOMAIN_PLATFORM_ANDA/g' /etc/nginx/sites-available/nofosys   # lewati bila domain Anda memang nofosys.id
 sudo ln -s /etc/nginx/sites-available/nofosys /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-## 10. HTTPS untuk domain platform & semua subdomain (wildcard)
-
-Satu sertifikat wildcard berlaku untuk `nofosys.id` dan **semua** `*.nofosys.id`, jadi klien baru tidak perlu sertifikat tambahan. Let's Encrypt mewajibkan verifikasi lewat DNS untuk wildcard:
-
-```bash
-sudo certbot certonly --manual --preferred-challenges dns -d nofosys.id -d '*.nofosys.id'
-```
-
-Certbot meminta Anda menambahkan record **TXT `_acme-challenge`** di panel domain; tunggu ±1 menit setelah menambahkannya sebelum menekan Enter.
-
-> Cara manual ini harus diulang tiap ±90 hari. Agar perpanjangan otomatis, pakai plugin DNS penyedia domain Anda — mis. pindahkan DNS ke Cloudflare (gratis) lalu pakai `python3-certbot-dns-cloudflare`.
-
-Lalu edit `/etc/nginx/sites-available/nofosys`:
-1. Salin seluruh blok `server { ... }` menjadi blok kedua, ubah `listen 80;` / `listen [::]:80;` menjadi `listen 443 ssl;` / `listen [::]:443 ssl;`, dan tambahkan:
-   ```nginx
-   ssl_certificate     /etc/letsencrypt/live/nofosys.id/fullchain.pem;
-   ssl_certificate_key /etc/letsencrypt/live/nofosys.id/privkey.pem;
-   ```
-2. Di blok port 80, ganti kedua `location` dengan: `return 301 https://$host$request_uri;`
-
-```bash
-sudo nginx -t && sudo systemctl reload nginx
-```
+`deploy/nginx.conf` sudah lengkap: HTTP dialihkan ke HTTPS, dan `nofosys.id` + `*.nofosys.id` diteruskan ke website (port 3000) dan API (`/api/` → port 4000).
 
 Selesai 🎉
 
@@ -208,16 +214,21 @@ node dist/org.js pengelola --email anda@nofosys.id        # buat pengelola / res
 
 ### Domain milik klien (mis. `mentalenglish.id`)
 
-1. Di panel → buka lembaga → **Alamat website** → tambahkan `mentalenglish.id`.
-2. Klien mengarahkan domainnya ke server, di panel domain mereka:
-   - domain utama (`mentalenglish.id`): `A @ → IP VPS`
-   - subdomain (`belajar.bimbelkamu.com`): `CNAME belajar → nofosys.id`
-3. Di server, tambahkan domain itu ke `server_name` blok port 80 di `/etc/nginx/sites-available/nofosys`, lalu:
+1. **Panel** → buka lembaga → **Alamat website** → tambahkan `mentalenglish.id`.
+2. **Klien** mengarahkan domainnya ke server (di panel tempat beli domain):
+   - domain utama: `A @ → IP VPS` dan `A www → IP VPS`
+   - atau subdomain (`belajar.bimbelkamu.com`): `CNAME belajar → nofosys.id`
+3. **Server** — satu file Nginx per domain klien, dari template:
    ```bash
+   cd /var/www/nofosys
+   D=mentalenglish.id
+   sudo cp deploy/nginx-klien.conf /etc/nginx/sites-available/klien-$D
+   sudo sed -i "s/DOMAIN_KLIEN/$D/g" /etc/nginx/sites-available/klien-$D
+   sudo ln -s /etc/nginx/sites-available/klien-$D /etc/nginx/sites-enabled/
    sudo nginx -t && sudo systemctl reload nginx
-   sudo certbot --nginx -d mentalenglish.id
+   sudo certbot --nginx -d $D -d www.$D        # HTTPS + perpanjangan otomatis
    ```
-   Certbot membuat blok HTTPS untuk domain tersebut dan memperpanjangnya otomatis.
+   `www.` dialihkan ke domain utama. Untuk domain berupa subdomain, hapus blok `www` di file itu dan jalankan certbot hanya dengan `-d belajar.bimbelkamu.com`.
 
 Perubahan domain/status dari panel berlaku paling lambat 1 menit (cache API).
 
@@ -302,7 +313,7 @@ sudo tail -f /var/log/nginx/error.log
 | "Layanan lembaga ini sedang tidak aktif" | Lembaga dinonaktifkan di panel. Aktifkan lagi di panel. |
 | Subdomain klien tidak terbuka | Record DNS `A *` belum dibuat / belum menyebar. Cek `ping slug.nofosys.id`. |
 | Certbot wildcard gagal | Record TXT `_acme-challenge` belum menyebar; tunggu beberapa menit lalu ulangi. |
-| Certbot domain klien gagal | DNS klien belum mengarah ke IP VPS, atau domain belum ada di `server_name`. |
+| Certbot domain klien gagal | DNS klien belum mengarah ke IP VPS, atau file `klien-DOMAIN` belum dibuat / belum di-link ke `sites-enabled`. |
 | Build berhenti / `Killed` | RAM kurang. Tambah swap 2 GB: `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && echo '/swapfile none swap sw 0 0' \| sudo tee -a /etc/fstab` |
 | Lupa password panel pengelola | `cd backend && node dist/org.js pengelola --email EMAIL_ANDA` → password baru ditampilkan. |
 | Ganti domain platform | Ubah `PLATFORM_DOMAIN`/`CORS_ORIGIN` di `backend/.env`, `NEXT_PUBLIC_SITE_URL` di `frontend/.env.production.local`, dan `server_name` Nginx; build ulang website; `pm2 reload ecosystem.config.js --update-env`; terbitkan sertifikat wildcard baru. |
