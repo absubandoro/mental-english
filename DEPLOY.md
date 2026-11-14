@@ -21,7 +21,7 @@ Contoh di panduan ini memakai domain platform **`nofosys.id`**, domain klien **`
 
 ## 1. Siapkan VPS & DNS
 
-**Spesifikasi minimal:** Ubuntu 22.04 / 24.04, **2 GB RAM**, 2 vCPU, 25 GB disk.
+**Spesifikasi minimal:** Ubuntu 22.04 / 24.04 / 26.04 LTS, **2 GB RAM**, 2 vCPU, 25 GB disk.
 (Dengan 1 GB RAM, proses build bisa gagal kehabisan memori — tambahkan swap, lihat *Masalah umum*.)
 
 **DNS domain platform** (di panel tempat beli domain `nofosys.id`):
@@ -308,6 +308,7 @@ sudo tail -f /var/log/nginx/error.log
 
 | Gejala | Penyebab & solusi |
 |---|---|
+| `nginx -t`: *the "listen ... http2" directive is deprecated* | Hanya peringatan di Nginx versi baru (mis. Ubuntu 26.04), konfigurasi tetap jalan. Bisa dirapikan sesuai komentar di `deploy/nginx.conf`. |
 | `502 Bad Gateway` | Aplikasi belum jalan / crash. Cek `pm2 status` dan `pm2 logs`. |
 | "Lembaga tidak ditemukan untuk domain ini" | Slug salah, atau domain kustom belum ditambahkan di panel → lembaga → Alamat website. |
 | "Layanan lembaga ini sedang tidak aktif" | Lembaga dinonaktifkan di panel. Aktifkan lagi di panel. |
